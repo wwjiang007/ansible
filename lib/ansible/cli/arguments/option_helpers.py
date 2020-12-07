@@ -19,6 +19,8 @@ try:
 except ImportError:
     HAS_LIBYAML = False
 
+from jinja2 import __version__ as j2_version
+
 import ansible
 from ansible import constants as C
 from ansible.module_utils._text import to_native
@@ -172,6 +174,7 @@ def version(prog=None):
     result.append("  ansible collection location = %s" % ':'.join(C.COLLECTIONS_PATHS))
     result.append("  executable location = %s" % sys.argv[0])
     result.append("  python version = %s" % ''.join(sys.version.splitlines()))
+    result.append("  jinja version = %s" % j2_version)
     result.append("  libyaml = %s" % HAS_LIBYAML)
     return "\n".join(result)
 
@@ -218,7 +221,8 @@ def add_basedir_options(parser):
     """Add options for commands which can set a playbook basedir"""
     parser.add_argument('--playbook-dir', default=C.config.get_config_value('PLAYBOOK_DIR'), dest='basedir', action='store',
                         help="Since this tool does not use playbooks, use this as a substitute playbook directory."
-                             "This sets the relative path for many features including roles/ group_vars/ etc.")
+                             "This sets the relative path for many features including roles/ group_vars/ etc.",
+                        type=unfrack_path())
 
 
 def add_check_options(parser):
