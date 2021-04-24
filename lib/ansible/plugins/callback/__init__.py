@@ -99,6 +99,17 @@ class CallbackBase(AnsiblePlugin):
         # load from config
         self._plugin_options = C.config.get_plugin_options(get_plugin_class(self), self._load_name, keys=task_keys, variables=var_options, direct=direct)
 
+    @staticmethod
+    def host_label(result):
+        """Return label for the hostname (& delegated hostname) of a task
+        result.
+        """
+        hostname = result._host.get_name()
+        delegated_vars = result._result.get('_ansible_delegated_vars', None)
+        if delegated_vars:
+            return "%s -> %s" % (hostname, delegated_vars['ansible_host'])
+        return "%s" % (hostname,)
+
     def _run_is_verbose(self, result, verbosity=0):
         return ((self._display.verbosity > verbosity or result._result.get('_ansible_verbose_always', False) is True)
                 and result._result.get('_ansible_verbose_override', False) is False)
@@ -258,6 +269,11 @@ class CallbackBase(AnsiblePlugin):
                 # 'var' value as field, so eliminate others and what is left should be varname
                 for hidme in self._hide_in_debug:
                     result.pop(hidme, None)
+
+    def _print_task_path(self, task, color=C.COLOR_DEBUG):
+        path = task.get_path()
+        if path:
+            self._display.display(u"task path: %s" % path, color=color)
 
     def set_play_context(self, play_context):
         pass

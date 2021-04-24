@@ -106,11 +106,19 @@ def safe_eval(expr, locals=None, include_exceptions=False):
 
     filter_list = []
     for filter_ in filter_loader.all():
-        filter_list.extend(filter_.filters().keys())
+        try:
+            filter_list.extend(filter_.filters().keys())
+        except Exception:
+            # This is handled and displayed in JinjaPluginIntercept._load_ansible_plugins
+            continue
 
     test_list = []
     for test in test_loader.all():
-        test_list.extend(test.tests().keys())
+        try:
+            test_list.extend(test.tests().keys())
+        except Exception:
+            # This is handled and displayed in JinjaPluginIntercept._load_ansible_plugins
+            continue
 
     CALL_ENABLED = C.CALLABLE_ACCEPT_LIST + filter_list + test_list
 
@@ -140,7 +148,7 @@ def safe_eval(expr, locals=None, include_exceptions=False):
     try:
         parsed_tree = ast.parse(expr, mode='eval')
         cnv.visit(parsed_tree)
-        compiled = compile(parsed_tree, to_native(expr), 'eval')
+        compiled = compile(parsed_tree, '<expr %s>' % to_native(expr), 'eval')
         # Note: passing our own globals and locals here constrains what
         # callables (and other identifiers) are recognized.  this is in
         # addition to the filtering of builtins done in CleansingNodeVisitor

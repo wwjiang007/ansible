@@ -40,12 +40,13 @@ display = Display()
 
 try:
     import curses
+    import io
 
     # Nest the try except since curses.error is not available if curses did not import
     try:
         curses.setupterm()
         HAS_CURSES = True
-    except (curses.error, TypeError):
+    except (curses.error, TypeError, io.UnsupportedOperation):
         HAS_CURSES = False
 except ImportError:
     HAS_CURSES = False
@@ -231,7 +232,8 @@ class ActionModule(ActionBase):
 
             while True:
                 if not interactive:
-                    display.warning("Not waiting for response to prompt as stdin is not interactive")
+                    if seconds is None:
+                        display.warning("Not waiting for response to prompt as stdin is not interactive")
                     if seconds is not None:
                         # Give the signal handler enough time to timeout
                         time.sleep(seconds + 1)
@@ -244,19 +246,20 @@ class ActionModule(ActionBase):
                         clear_line(stdout)
                         raise KeyboardInterrupt
 
-                    # read key presses and act accordingly
-                    if key_pressed in (b'\r', b'\n'):
-                        clear_line(stdout)
-                        break
-                    elif key_pressed in backspace:
-                        # delete a character if backspace is pressed
-                        result['user_input'] = result['user_input'][:-1]
-                        clear_line(stdout)
-                        if echo:
-                            stdout.write(result['user_input'])
-                        stdout.flush()
-                    else:
-                        result['user_input'] += key_pressed
+                    if not seconds:
+                        # read key presses and act accordingly
+                        if key_pressed in (b'\r', b'\n'):
+                            clear_line(stdout)
+                            break
+                        elif key_pressed in backspace:
+                            # delete a character if backspace is pressed
+                            result['user_input'] = result['user_input'][:-1]
+                            clear_line(stdout)
+                            if echo:
+                                stdout.write(result['user_input'])
+                            stdout.flush()
+                        else:
+                            result['user_input'] += key_pressed
 
                 except KeyboardInterrupt:
                     signal.alarm(0)

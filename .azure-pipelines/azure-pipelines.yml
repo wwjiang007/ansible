@@ -31,12 +31,12 @@ variables:
   - name: entryPoint
     value: test/utils/shippable/shippable.sh
   - name: fetchDepth
-    value: 100
+    value: 500
 
 resources:
   containers:
     - container: default
-      image: quay.io/ansible/azure-pipelines-test-container:1.6.0
+      image: quay.io/ansible/azure-pipelines-test-container:1.9.0
 
 pool: Standard
 
@@ -87,16 +87,18 @@ stages:
       - template: templates/matrix.yml
         parameters:
           targets:
-            - name: macOS 10.15
-              test: macos/10.15
+            - name: macOS 11.1
+              test: macos/11.1
             - name: RHEL 7.9
               test: rhel/7.9
-            - name: RHEL 8.3
-              test: rhel/8.3
-            - name: FreeBSD 11.1
-              test: freebsd/11.1
+            - name: RHEL 8.3 py36
+              test: rhel/8.3@3.6
+            - name: RHEL 8.3 py38
+              test: rhel/8.3@3.8
             - name: FreeBSD 12.2
               test: freebsd/12.2
+            - name: FreeBSD 13.0
+              test: freebsd/13.0
           groups:
             - 1
             - 2
@@ -118,18 +120,18 @@ stages:
               test: centos7
             - name: CentOS 8
               test: centos8
-            - name: Fedora 31
-              test: fedora31
             - name: Fedora 32
               test: fedora32
+            - name: Fedora 33
+              test: fedora33
             - name: openSUSE 15 py2
               test: opensuse15py2
             - name: openSUSE 15 py3
               test: opensuse15
-            - name: Ubuntu 16.04
-              test: ubuntu1604
             - name: Ubuntu 18.04
               test: ubuntu1804
+            - name: Ubuntu 20.04
+              test: ubuntu2004
           groups:
             - 1
             - 2
@@ -155,7 +157,7 @@ stages:
           testFormat: generic/{0}/1
           targets:
             - test: 2.7
-            - test: 3.6
+            - test: 3.9
   - stage: Incidental_Remote
     displayName: Incidental Remote
     dependsOn: []
@@ -168,12 +170,14 @@ stages:
               test: osx/10.11
             - name: RHEL 7.9
               test: rhel/7.9
-            - name: RHEL 8.3
-              test: rhel/8.3
-            - name: FreeBSD 11.1
-              test: freebsd/11.1
+            - name: RHEL 8.3 py36
+              test: rhel/8.3@3.6
+            - name: RHEL 8.3 py38
+              test: rhel/8.3@3.8
             - name: FreeBSD 12.2
               test: freebsd/12.2
+            - name: FreeBSD 13.0
+              test: freebsd/13.0
   - stage: Incidental_Docker
     displayName: Incidental Docker
     dependsOn: []
@@ -188,18 +192,18 @@ stages:
               test: centos7
             - name: CentOS 8
               test: centos8
-            - name: Fedora 31
-              test: fedora31
             - name: Fedora 32
               test: fedora32
+            - name: Fedora 33
+              test: fedora33
             - name: openSUSE 15 py2
               test: opensuse15py2
             - name: openSUSE 15 py3
               test: opensuse15
-            - name: Ubuntu 16.04
-              test: ubuntu1604
             - name: Ubuntu 18.04
               test: ubuntu1804
+            - name: Ubuntu 20.04
+              test: ubuntu2004
   - stage: Incidental_Windows
     displayName: Incidental Windows
     dependsOn: []

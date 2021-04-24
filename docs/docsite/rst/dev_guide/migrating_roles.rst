@@ -110,11 +110,10 @@ This creates the collection directory structure.
 
 5. Update the collection README.md file to add links to any role README.md files.
 
-
 .. _complex_roles_in_collections:
 
-Migrating a role with plugins to a collection
-==============================================
+Migrating a role that contains plugins to a collection
+======================================================
 
 To migrate from a standalone role that has plugins to a collection role:
 
@@ -226,7 +225,7 @@ In the Python example the ``module_utils`` is ``helper`` and the :abbr:`FQCN (Fu
 .. code-block:: text
 
   from ansible.module_utils.basic import AnsibleModule
-  from ansible.module_utils._text import to_text
+  from ansible.module_utils.common.text.converters import to_text
   from ansible.module_utils.six.moves.urllib.parse import urlencode
   from ansible.module_utils.six.moves.urllib.error import HTTPError
   from ansible_collections.ansible_example.community.plugins.module_utils.helper import HelperRequest
@@ -408,3 +407,21 @@ The following is an example RPM spec file that accomplishes this using this exam
   %doc %{collection_dir}/roles/*/README.md
   %license %{_pkgdocdir}/*/COPYING
   %license %{_pkgdocdir}/*/LICENSE
+
+.. _using_ansible_legacy:
+
+Using ``ansible.legacy`` to access local custom modules from collections-based roles
+=====================================================================================
+
+Some roles use :ref:`local custom modules <developing_locally>` that are not part of the role itself. When you move these roles into collections, they can no longer find those custom plugins. You can add the synthetic collection ``ansible.legacy`` to enable legacy behavior and find those custom plugins. Adding ``ansible.legacy`` configures your role to search the pre-collections default paths for modules and plugins.
+
+To enable a role hosted in a collection to find legacy custom modules and other plugins hosted locally:
+
+Edit the role's ``meta/main.yml`` and add the ``ansible.legacy`` collection to your collection-hosted role to enable the use of legacy custom modules and plugins for all tasks:
+
+.. code-block:: yaml
+
+   collections:
+     - ansible.legacy
+
+Alternatively, you can update the tasks directly by changing ``local_module_name`` to ``ansible.legacy.local_module_name``.

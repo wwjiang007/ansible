@@ -680,7 +680,7 @@ class VaultLib:
             raise AnsibleVaultError("A vault password must be specified to decrypt data")
 
         if not is_encrypted(b_vaulttext):
-            msg = "input is not vault encrypted data"
+            msg = "input is not vault encrypted data. "
             if filename:
                 msg += "%s is not a vault encrypted file" % to_native(filename)
             raise AnsibleError(msg)
@@ -1038,7 +1038,10 @@ class VaultEditor:
 
         try:
             if filename == '-':
-                data = sys.stdin.read()
+                if PY3:
+                    data = sys.stdin.buffer.read()
+                else:
+                    data = sys.stdin.read()
             else:
                 with open(filename, "rb") as fh:
                     data = fh.read()

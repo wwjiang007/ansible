@@ -72,25 +72,27 @@ class WorkerProcess(multiprocessing_context.Process):
         self._loader._tempfiles = set()
 
     def _save_stdin(self):
-        self._new_stdin = os.devnull
+        self._new_stdin = None
         try:
             if sys.stdin.isatty() and sys.stdin.fileno() is not None:
                 try:
                     self._new_stdin = os.fdopen(os.dup(sys.stdin.fileno()))
                 except OSError:
                     # couldn't dupe stdin, most likely because it's
-                    # not a valid file descriptor, so we just rely on
-                    # using the one that was passed in
+                    # not a valid file descriptor
                     pass
         except (AttributeError, ValueError):
-            # couldn't get stdin's fileno, so we just carry on
+            # couldn't get stdin's fileno
             pass
+
+        if self._new_stdin is None:
+            self._new_stdin = open(os.devnull)
 
     def start(self):
         '''
         multiprocessing.Process replaces the worker's stdin with a new file
-        opened on os.devnull, but we wish to preserve it if it is connected to
-        a terminal. Therefore dup a copy prior to calling the real start(),
+        but we wish to preserve it if it is connected to a terminal.
+        Therefore dup a copy prior to calling the real start(),
         ensuring the descriptor is preserved somewhere in the new child, and
         make sure it is closed in the parent when start() completes.
         '''
@@ -99,8 +101,7 @@ class WorkerProcess(multiprocessing_context.Process):
         try:
             return super(WorkerProcess, self).start()
         finally:
-            if self._new_stdin != os.devnull:
-                self._new_stdin.close()
+            self._new_stdin.close()
 
     def _hard_exit(self, e):
         '''
@@ -134,6 +135,18 @@ class WorkerProcess(multiprocessing_context.Process):
             return self._run()
         except BaseException as e:
             self._hard_exit(e)
+        finally:
+            # This is a hack, pure and simple, to work around a potential deadlock
+            # in ``multiprocessing.Process`` when flushing stdout/stderr during process
+            # shutdown. We have various ``Display`` calls that may fire from a fork
+            # so we cannot do this early. Instead, this happens at the very end
+            # to avoid that deadlock, by simply side stepping it. This should not be
+            # treated as a long term fix. Additionally this behavior only presents itself
+            # on Python3. Python2 does not exhibit the deadlock behavior.
+            # TODO: Evaluate overhauling ``Display`` to not write directly to stdout
+            # and evaluate migrating away from the ``fork`` multiprocessing start method.
+            if sys.version_info[0] >= 3:
+                sys.stdout = sys.stderr = open(os.devnull, 'w')
 
     def _run(self):
         '''

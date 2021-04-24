@@ -532,7 +532,7 @@
 
 - name: try to install from non existing url
   yum:
-    name: https://s3.amazonaws.com/ansible-ci-files/test/integration/targets/yum/non-existing-1.0.0.fc26.noarch.rpm
+    name: https://ansible-ci-files.s3.amazonaws.com/test/integration/targets/yum/non-existing-1.0.0.fc26.noarch.rpm
     state: present
   register: yum_result
   ignore_errors: yes
@@ -580,7 +580,7 @@
 
 - name: try to install uncompatible arch rpm on non-ppc64le, should fail
   yum:
-    name: https://s3.amazonaws.com/ansible-ci-files/test/integration/targets/yum/banner-1.3.4-3.el7.ppc64le.rpm
+    name: https://ansible-ci-files.s3.amazonaws.com/test/integration/targets/yum/banner-1.3.4-3.el7.ppc64le.rpm
     state: present
   register: yum_result
   ignore_errors: True
@@ -597,7 +597,7 @@
 
 - name: try to install uncompatible arch rpm on ppc64le, should fail
   yum:
-    name: https://s3.amazonaws.com/ansible-ci-files/test/integration/targets/yum/tinyproxy-1.10.0-3.el7.x86_64.rpm
+    name: https://ansible-ci-files.s3.amazonaws.com/test/integration/targets/yum/tinyproxy-1.10.0-3.el7.x86_64.rpm
     state: present
   register: yum_result
   ignore_errors: True
@@ -615,30 +615,19 @@
 # setup for testing installing an RPM from url
 
 - set_fact:
-    pkg_name: fpaste
+    pkg_name: noarchfake
+    pkg_path: '{{ repodir }}/noarchfake-1.0-1.noarch.rpm'
 
 - name: cleanup
   yum:
     name: "{{ pkg_name }}"
     state: absent
 
-- set_fact:
-    pkg_url: https://s3.amazonaws.com/ansible-ci-files/test/integration/targets/yum/fpaste-0.3.7.4.1-2.el7.noarch.rpm
-  when: ansible_python.version.major == 2
-
-- set_fact:
-    pkg_url: https://s3.amazonaws.com/ansible-ci-files/test/integration/targets/yum/fpaste-0.3.9.2-1.fc28.noarch.rpm
-  when: ansible_python.version.major == 3
 # setup end
 
-- name: download an rpm
-  get_url:
-    url: "{{ pkg_url }}"
-    dest: "/tmp/{{ pkg_name }}.rpm"
-
-- name: install the downloaded rpm
+- name: install a local noarch rpm from file
   yum:
-    name: "/tmp/{{ pkg_name }}.rpm"
+    name: "{{ pkg_path }}"
     state: present
     disable_gpg_check: true
   register: yum_result
@@ -659,7 +648,7 @@
 
 - name: install the downloaded rpm again
   yum:
-    name: "/tmp/{{ pkg_name }}.rpm"
+    name: "{{ pkg_path }}"
     state: present
   register: yum_result
 
@@ -684,7 +673,7 @@
 
 - name: install from url
   yum:
-    name: "{{ pkg_url }}"
+    name: "file://{{ pkg_path }}"
     state: present
     disable_gpg_check: true
   register: yum_result

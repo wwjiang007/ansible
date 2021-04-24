@@ -33,11 +33,13 @@ from .data import (
 MODULE_EXTENSIONS = '.py', '.ps1'
 
 try:
+    # noinspection PyTypeChecker
     TCompletionTarget = t.TypeVar('TCompletionTarget', bound='CompletionTarget')
 except AttributeError:
     TCompletionTarget = None  # pylint: disable=invalid-name
 
 try:
+    # noinspection PyTypeChecker
     TIntegrationTarget = t.TypeVar('TIntegrationTarget', bound='IntegrationTarget')
 except AttributeError:
     TIntegrationTarget = None  # pylint: disable=invalid-name
@@ -611,6 +613,9 @@ class IntegrationTarget(CompletionTarget):
 
         if 'destructive' not in groups:
             groups.append('non_destructive')
+
+        if 'needs/httptester' in groups:
+            groups.append('cloud/httptester')  # backwards compatibility for when it was not a cloud plugin
 
         if '_' in self.name:
             prefix = self.name[:self.name.find('_')]

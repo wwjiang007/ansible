@@ -4,6 +4,12 @@
 User Guide
 ##########
 
+.. note::
+
+    **Making Open Source More Inclusive**
+
+    Red Hat is committed to replacing problematic language in our code, documentation, and web properties. We are beginning with these four terms: master, slave, blacklist, and whitelist. We ask that you open an issue or pull request if you come upon a term that we have missed. For more details, see `our CTO Chris Wright's message <https://www.redhat.com/en/blog/making-open-source-more-inclusive-eradicating-problematic-language>`_.
+
 Welcome to the Ansible User Guide! This guide covers how to work with Ansible, including using the command line, working with inventory, interacting with data, writing tasks, plays, and playbooks; executing playbooks, and reference materials. This page outlines the most common situations and questions that bring readers to this section. If you prefer a traditional table of contents, you can find one at the bottom of the page.
 
 Getting started
@@ -15,7 +21,7 @@ Getting started
   * a :ref:`text introduction <intro_getting_started>`
 
 * I'm ready to learn about Ansible. What :ref:`basic_concepts` do I need to learn?
-* I want to use Ansible without writing a playbook. How do I use :ref:`ad-hoc commands <intro_adhoc>`?
+* I want to use Ansible without writing a playbook. How do I use :ref:`ad hoc commands <intro_adhoc>`?
 
 Writing tasks, plays, and playbooks
 ===================================
@@ -33,7 +39,7 @@ Writing tasks, plays, and playbooks
   * Setting remote :ref:`environment values <playbooks_environment>`
 
 * I want to leverage the power of re-usable Ansible artifacts. How do I create re-usable :ref:`files <playbooks_reuse>` and :ref:`roles <playbooks_reuse_roles>`?
-* I need to incorporate one file or playbook inside another. What is the difference between :ref:`including and importing <playbooks_reuse_includes>`?
+* I need to incorporate one file or playbook inside another. What is the difference between :ref:`including and importing <dynamic_vs_static>`?
 * I want to run selected parts of my playbook. How do I add and use :ref:`tags <tags>`?
 
 Working with inventory

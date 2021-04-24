@@ -1,8 +1,10 @@
+.. _ansible_3_roadmap:
+
 ===================
 Ansible project 3.0
 ===================
 
-This release schedule includes dates for the `ansible <https://pypi.org/project/ansible/>`_ package, with a few dates for the `ansible-base <https://pypi.org/project/ansible-base/>`_ package as well. All dates are subject to change. See :ref:`base_roadmap_2_11` for the most recent updates on ``ansible-base``.
+This release schedule includes dates for the `ansible <https://pypi.org/project/ansible/>`_ package, with a few dates for the `ansible-base <https://pypi.org/project/ansible-base/>`_ package as well. All dates are subject to change. Ansible 3.x.x includes ``ansible-base`` 2.10. See :ref:`base_roadmap_2_10` for the most recent updates on ``ansible-base``.
 
 .. contents::
    :local:
@@ -42,4 +44,15 @@ Ansible minor releases
 Ansible 3.x.x minor releases will occur approximately every three weeks if changes to collections have been made or if it is deemed necessary to force an upgrade to a later ansible-base-2.10.x.  Ansible 3.x.x minor releases may contain new features but not backwards incompatibilities.  In practice, this means we will include new collection versions where either the patch or the minor version number has changed but not when the major number has changed. For example, if Ansible-3.0.0 ships with community-crypto-2.1.0; Ansible-3.1.0 may ship with community-crypto-2.2.0 but would not ship with community-crypto-3.0.0).
 
 
+.. note::
+
+    Minor releases will stop when :ref:`Ansible-4 <ansible_4_roadmap>` is released.  See the :ref:`Release and Maintenance Page <release_and_maintenance>` for more information.
+
+
 For more information, reach out on a mailing list or an IRC channel - see :ref:`communication` for more details.
+
+
+ansible-base release
+====================
+
+Ansible 3.x.x works with ``ansible-base`` 2.10. See :ref:`base_roadmap_2_10` for details.

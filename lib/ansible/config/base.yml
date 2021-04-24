@@ -3,20 +3,12 @@
 ---
 ALLOW_WORLD_READABLE_TMPFILES:
   name: Allow world-readable temporary files
-  deprecated:
-    why: moved to a per plugin approach that is more flexible
-    version: "2.14"
-    alternatives: mostly the same config will work, but now controlled from the plugin itself and not using the general constant.
   default: False
   description:
-    - This makes the temporary files created on the machine world-readable and will issue a warning instead of failing the task.
-    - It is useful when becoming an unprivileged user.
-  env: []
-  ini:
-  - {key: allow_world_readable_tmpfiles, section: defaults}
+    - This setting has been moved to the individual shell plugins as a plugin option :ref:`shell_plugins`.
+    - The existing configuration settings are still accepted with the shell plugin adding additional options, like variables.
+    - This message will be removed in 2.14.
   type: boolean
-  yaml: {key: defaults.allow_world_readable_tmpfiles}
-  version_added: "2.1"
 ANSIBLE_CONNECTION_PATH:
   name: Path of ansible-connection script
   default: null
@@ -72,7 +64,11 @@ ANSIBLE_NOCOLOR:
   name: Suppress color output
   default: False
   description: This setting allows suppressing colorizing output, which is used to give a better indication of failure and status information.
-  env: [{name: ANSIBLE_NOCOLOR}]
+  env:
+    - name: ANSIBLE_NOCOLOR
+      # this is generic convention for CLI programs
+    - name: NO_COLOR
+      version_added: '2.11'
   ini:
   - {key: nocolor, section: defaults}
   type: boolean
@@ -105,70 +101,15 @@ ANSIBLE_PIPELINING:
     - "However this conflicts with privilege escalation (become). For example, when using 'sudo:' operations you must first
       disable 'requiretty' in /etc/sudoers on all managed hosts, which is why it is disabled by default."
     - This option is disabled if ``ANSIBLE_KEEP_REMOTE_FILES`` is enabled.
+    - This is a global option, each connection plugin can override either by having more specific options or not supporting pipelining at all.
   env:
     - name: ANSIBLE_PIPELINING
-    - name: ANSIBLE_SSH_PIPELINING
   ini:
+  - section: defaults
+    key: pipelining
   - section: connection
     key: pipelining
-  - section: ssh_connection
-    key: pipelining
   type: boolean
-  yaml: {key: plugins.connection.pipelining}
-ANSIBLE_SSH_ARGS:
-  # TODO: move to ssh plugin
-  default: -C -o ControlMaster=auto -o ControlPersist=60s
-  description:
-    - If set, this will override the Ansible default ssh arguments.
-    - In particular, users may wish to raise the ControlPersist time to encourage performance.  A value of 30 minutes may be appropriate.
-    - Be aware that if `-o ControlPath` is set in ssh_args, the control path setting is not used.
-  env: [{name: ANSIBLE_SSH_ARGS}]
-  ini:
-  - {key: ssh_args, section: ssh_connection}
-  yaml: {key: ssh_connection.ssh_args}
-ANSIBLE_SSH_CONTROL_PATH:
-  # TODO: move to ssh plugin
-  default: null
-  description:
-    - This is the location to save ssh's ControlPath sockets, it uses ssh's variable substitution.
-    - Since 2.3, if null, ansible will generate a unique hash. Use `%(directory)s` to indicate where to use the control dir path setting.
-    - Before 2.3 it defaulted to `control_path=%(directory)s/ansible-ssh-%%h-%%p-%%r`.
-    - Be aware that this setting is ignored if `-o ControlPath` is set in ssh args.
-  env: [{name: ANSIBLE_SSH_CONTROL_PATH}]
-  ini:
-  - {key: control_path, section: ssh_connection}
-  yaml: {key: ssh_connection.control_path}
-ANSIBLE_SSH_CONTROL_PATH_DIR:
-  # TODO: move to ssh plugin
-  default: ~/.ansible/cp
-  description:
-    - This sets the directory to use for ssh control path if the control path setting is null.
-    - Also, provides the `%(directory)s` variable for the control path setting.
-  env: [{name: ANSIBLE_SSH_CONTROL_PATH_DIR}]
-  ini:
-  - {key: control_path_dir, section: ssh_connection}
-  yaml: {key: ssh_connection.control_path_dir}
-ANSIBLE_SSH_EXECUTABLE:
-  # TODO: move to ssh plugin, note that ssh_utils  refs this and needs to be updated if removed
-  default: ssh
-  description:
-    - This defines the location of the ssh binary. It defaults to `ssh` which will use the first ssh binary available in $PATH.
-    - This option is usually not required, it might be useful when access to system ssh is restricted,
-      or when using ssh wrappers to connect to remote hosts.
-  env: [{name: ANSIBLE_SSH_EXECUTABLE}]
-  ini:
-  - {key: ssh_executable, section: ssh_connection}
-  yaml: {key: ssh_connection.ssh_executable}
-  version_added: "2.2"
-ANSIBLE_SSH_RETRIES:
-  # TODO: move to ssh plugin
-  default: 0
-  description: Number of attempts to establish a connection before we give up and report the host as 'UNREACHABLE'
-  env: [{name: ANSIBLE_SSH_RETRIES}]
-  ini:
-  - {key: retries, section: ssh_connection}
-  type: integer
-  yaml: {key: ssh_connection.retries}
 ANY_ERRORS_FATAL:
   name: Make Task failures fatal
   default: False
@@ -234,7 +175,8 @@ CACHE_PLUGIN_TIMEOUT:
   type: integer
   yaml: {key: facts.cache.timeout}
 COLLECTIONS_SCAN_SYS_PATH:
-  name: enable/disable scanning sys.path for installed collections
+  name: Scan PYTHONPATH for installed collections
+  description: A boolean to enable or disable scanning the sys.path for installed collections
   default: true
   type: boolean
   env:
@@ -271,15 +213,19 @@ COLLECTIONS_ON_ANSIBLE_VERSION_MISMATCH:
   ini: [{key: collections_on_ansible_version_mismatch, section: defaults}]
   choices: [error, warning, ignore]
   default: warning
+_COLOR_DEFAULTS: &color
+  name: placeholder for color settings' defaults
+  choices: ['black', 'bright gray', 'blue', 'white', 'green', 'bright blue', 'cyan', 'bright green', 'red', 'bright cyan', 'purple', 'bright red', 'yellow', 'bright purple', 'dark gray', 'bright yellow', 'magenta', 'bright magenta', 'normal']
 COLOR_CHANGED:
+  <<: *color
   name: Color for 'changed' task status
   default: yellow
   description: Defines the color to use on 'Changed' task status
   env: [{name: ANSIBLE_COLOR_CHANGED}]
   ini:
   - {key: changed, section: colors}
-  yaml: {key: display.colors.changed}
 COLOR_CONSOLE_PROMPT:
+  <<: *color
   name: "Color for ansible-console's prompt task status"
   default: white
   description: Defines the default color to use for ansible-console
@@ -288,22 +234,23 @@ COLOR_CONSOLE_PROMPT:
   - {key: console_prompt, section: colors}
   version_added: "2.7"
 COLOR_DEBUG:
+  <<: *color
   name: Color for debug statements
   default: dark gray
   description: Defines the color to use when emitting debug messages
   env: [{name: ANSIBLE_COLOR_DEBUG}]
   ini:
   - {key: debug, section: colors}
-  yaml: {key: display.colors.debug}
 COLOR_DEPRECATE:
+  <<: *color
   name: Color for deprecation messages
   default: purple
   description: Defines the color to use when emitting deprecation messages
   env: [{name: ANSIBLE_COLOR_DEPRECATE}]
   ini:
   - {key: deprecate, section: colors}
-  yaml: {key: display.colors.deprecate}
 COLOR_DIFF_ADD:
+  <<: *color
   name: Color for diff added display
   default: green
   description: Defines the color to use when showing added lines in diffs
@@ -312,6 +259,7 @@ COLOR_DIFF_ADD:
   - {key: diff_add, section: colors}
   yaml: {key: display.colors.diff.add}
 COLOR_DIFF_LINES:
+  <<: *color
   name: Color for diff lines display
   default: cyan
   description: Defines the color to use when showing diffs
@@ -319,6 +267,7 @@ COLOR_DIFF_LINES:
   ini:
   - {key: diff_lines, section: colors}
 COLOR_DIFF_REMOVE:
+  <<: *color
   name: Color for diff removed display
   default: red
   description: Defines the color to use when showing removed lines in diffs
@@ -326,6 +275,7 @@ COLOR_DIFF_REMOVE:
   ini:
   - {key: diff_remove, section: colors}
 COLOR_ERROR:
+  <<: *color
   name: Color for error messages
   default: red
   description: Defines the color to use when emitting error messages
@@ -334,6 +284,7 @@ COLOR_ERROR:
   - {key: error, section: colors}
   yaml: {key: colors.error}
 COLOR_HIGHLIGHT:
+  <<: *color
   name: Color for highlighting
   default: white
   description: Defines the color to use for highlighting
@@ -341,6 +292,7 @@ COLOR_HIGHLIGHT:
   ini:
   - {key: highlight, section: colors}
 COLOR_OK:
+  <<: *color
   name: Color for 'ok' task status
   default: green
   description: Defines the color to use when showing 'OK' task status
@@ -348,6 +300,7 @@ COLOR_OK:
   ini:
   - {key: ok, section: colors}
 COLOR_SKIP:
+  <<: *color
   name: Color for 'skip' task status
   default: cyan
   description: Defines the color to use when showing 'Skipped' task status
@@ -355,6 +308,7 @@ COLOR_SKIP:
   ini:
   - {key: skip, section: colors}
 COLOR_UNREACHABLE:
+  <<: *color
   name: Color for 'unreachable' host state
   default: bright red
   description: Defines the color to use on 'Unreachable' status
@@ -362,6 +316,7 @@ COLOR_UNREACHABLE:
   ini:
   - {key: unreachable, section: colors}
 COLOR_VERBOSE:
+  <<: *color
   name: Color for verbose messages
   default: blue
   description: Defines the color to use when emitting verbose messages. i.e those that show with '-v's.
@@ -369,26 +324,13 @@ COLOR_VERBOSE:
   ini:
   - {key: verbose, section: colors}
 COLOR_WARN:
+  <<: *color
   name: Color for warning messages
   default: bright purple
   description: Defines the color to use when emitting warning messages
   env: [{name: ANSIBLE_COLOR_WARN}]
   ini:
   - {key: warn, section: colors}
-CONDITIONAL_BARE_VARS:
-  name: Allow bare variable evaluation in conditionals
-  default: False
-  type: boolean
-  description:
-    - With this setting on (True), running conditional evaluation 'var' is treated differently than 'var.subkey' as the first is evaluated
-      directly while the second goes through the Jinja2 parser. But 'false' strings in 'var' get evaluated as booleans.
-    - With this setting off they both evaluate the same but in cases in which 'var' was 'false' (a string) it won't get evaluated as a boolean anymore.
-    - Currently this setting defaults to 'True' but will soon change to 'False' and the setting itself will be removed in the future.
-    - Expect that this setting eventually will be deprecated after 2.12
-  env: [{name: ANSIBLE_CONDITIONAL_BARE_VARS}]
-  ini:
-  - {key: conditional_bare_variables, section: defaults}
-  version_added: "2.8"
 COVERAGE_REMOTE_OUTPUT:
   name: Sets the output directory and filename prefix to generate coverage run info.
   description:
@@ -768,23 +710,29 @@ DEFAULT_HASH_BEHAVIOUR:
   name: Hash merge behaviour
   default: replace
   type: string
-  choices: ["replace", "merge"]
+  choices:
+    replace: Any variable that is defined more than once is overwritten using the order from variable precedence rules (highest wins).
+    merge: Any dictionary variable will be recursively merged with new definitions across the different variable definition sources.
   description:
-    - This setting controls how variables merge in Ansible.
-      By default Ansible will override variables in specific precedence orders, as described in Variables.
-      When a variable of higher precedence wins, it will replace the other value.
-    - "Some users prefer that variables that are hashes (aka 'dictionaries' in Python terms) are merged.
-      This setting is called 'merge'. This is not the default behavior and it does not affect variables whose values are scalars
-      (integers, strings) or arrays.  We generally recommend not using this setting unless you think you have an absolute need for it,
-      and playbooks in the official examples repos do not use this setting"
-    - In version 2.0 a ``combine`` filter was added to allow doing this for a particular variable (described in Filters).
+    - This setting controls how duplicate definitions of dictionary variables (aka hash, map, associative array) are handled in Ansible.
+    - This does not affect variables whose values are scalars (integers, strings) or arrays.
+    - "**WARNING**, changing this setting is not recommended as this is fragile and makes your content (plays, roles, collections) non portable,
+      leading to continual confusion and misuse. Don't change this setting unless you think you have an absolute need for it."
+    - We recommend avoiding reusing variable names and relying on the ``combine`` filter and ``vars`` and ``varnames`` lookups
+      to create merged versions of the individual variables. In our experience this is rarely really needed and a sign that too much
+      complexity has been introduced into the data structures and plays.
+    - For some uses you can also look into custom vars_plugins to merge on input, even substituting the default ``host_group_vars``
+      that is in charge of parsing the ``host_vars/`` and ``group_vars/`` directories. Most users of this setting are only interested in inventory scope,
+      but the setting itself affects all sources and makes debugging even harder.
+    - All playbooks and roles in the official examples repos assume the default for this setting.
+    - Changing the setting to ``merge`` applies across variable sources, but many sources will internally still overwrite the variables.
+      For example ``include_vars`` will dedupe variables internally before updating Ansible, with 'last defined' overwriting previous definitions in same file.
+    - The Ansible project recommends you **avoid ``merge`` for new projects.**
+    - It is the intention of the Ansible developers to eventually deprecate and remove this setting, but it is being kept as some users do heavily rely on it.
+      New projects should **avoid 'merge'**.
   env: [{name: ANSIBLE_HASH_BEHAVIOUR}]
   ini:
   - {key: hash_behaviour, section: defaults}
-  deprecated:
-    why: this feature is fragile and not portable, leading to continual confusion and misuse
-    version: "2.13"
-    alternatives: the ``combine`` filter explicitly
 DEFAULT_HOST_LIST:
   name: Inventory Source
   default: /etc/ansible/hosts
@@ -1067,16 +1015,6 @@ DEFAULT_ROLES_PATH:
   - {key: roles_path, section: defaults}
   type: pathspec
   yaml: {key: defaults.roles_path}
-DEFAULT_SCP_IF_SSH:
-  # TODO: move to ssh plugin
-  default: smart
-  description:
-    - "Preferred method to use when transferring files over ssh."
-    - When set to smart, Ansible will try them until one succeeds or they all fail.
-    - If set to True, it will force 'scp', if False it will use 'sftp'.
-  env: [{name: ANSIBLE_SCP_IF_SSH}]
-  ini:
-  - {key: scp_if_ssh, section: ssh_connection}
 DEFAULT_SELINUX_SPECIAL_FS:
   name: Problematic file systems
   default: fuse, nfs, vboxsf, ramfs, 9p, vfat
@@ -1090,25 +1028,6 @@ DEFAULT_SELINUX_SPECIAL_FS:
   ini:
   - {key: special_context_filesystems, section: selinux}
   type: list
-DEFAULT_SFTP_BATCH_MODE:
-  # TODO: move to ssh plugin
-  default: True
-  description: 'TODO: write it'
-  env: [{name: ANSIBLE_SFTP_BATCH_MODE}]
-  ini:
-  - {key: sftp_batch_mode, section: ssh_connection}
-  type: boolean
-  yaml: {key: ssh_connection.sftp_batch_mode}
-DEFAULT_SSH_TRANSFER_METHOD:
-  # TODO: move to ssh plugin
-  default:
-  description: 'unused?'
-  #  - "Preferred method to use when transferring files over ssh"
-  #  - Setting to smart will try them until one succeeds or they all fail
-  #choices: ['sftp', 'scp', 'dd', 'smart']
-  env: [{name: ANSIBLE_SSH_TRANSFER_METHOD}]
-  ini:
-  - {key: transfer_method, section: ssh_connection}
 DEFAULT_STDOUT_CALLBACK:
   name: Main display callback plugin
   default: default
@@ -1420,9 +1339,6 @@ CONNECTION_FACTS_MODULES:
     ironware: ansible.legacy.ironware_facts
     community.network.ironware: community.network.ironware_facts
   description: "Which modules to run during a play's fact gathering stage based on connection"
-  env: [{name: ANSIBLE_CONNECTION_FACTS_MODULES}]
-  ini:
-    - {key: connection_facts_modules, section: defaults}
   type: dict
 FACTS_MODULES:
   name: Gather Facts Modules
@@ -1523,6 +1439,8 @@ GALAXY_CACHE_DIR:
   type: path
   version_added: '2.11'
 HOST_KEY_CHECKING:
+  # note: constant not in use by ssh plugin anymore
+  # TODO: check non ssh connection plugins for use/migration
   name: Check host keys
   default: True
   description: 'Set this to "False" if you want to avoid host key checking by the underlying tools Ansible uses to connect to the host'
@@ -1565,9 +1483,11 @@ INTERPRETER_PYTHON_DISTRO_MAP:
       '6': /usr/bin/python
       '8': /usr/libexec/platform-python
     debian:
+      '8': /usr/bin/python
       '10': /usr/bin/python3
     fedora:
       '23': /usr/bin/python3
+    oracle: *rhelish
     redhat: *rhelish
     rhel: *rhelish
     ubuntu:
@@ -1580,6 +1500,8 @@ INTERPRETER_PYTHON_FALLBACK:
   name: Ordered list of Python interpreters to check for in discovery
   default:
   - /usr/bin/python
+  - python3.9
+  - python3.8
   - python3.7
   - python3.6
   - python3.5

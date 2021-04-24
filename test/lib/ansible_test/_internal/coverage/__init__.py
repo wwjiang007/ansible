@@ -2,6 +2,7 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import errno
 import os
 import re
 
@@ -123,8 +124,15 @@ def get_powershell_coverage_files(path=None):  # type: (t.Optional[str]) -> t.Li
 def get_coverage_files(language, path=None):  # type: (str, t.Optional[str]) -> t.List[str]
     """Return the list of coverage file paths for the given language."""
     coverage_dir = path or ResultType.COVERAGE.path
-    coverage_files = [os.path.join(coverage_dir, f) for f in os.listdir(coverage_dir)
-                      if '=coverage.' in f and '=%s' % language in f]
+
+    try:
+        coverage_files = [os.path.join(coverage_dir, f) for f in os.listdir(coverage_dir)
+                          if '=coverage.' in f and '=%s' % language in f]
+    except IOError as ex:
+        if ex.errno == errno.ENOENT:
+            return []
+
+        raise
 
     return coverage_files
 
@@ -163,8 +171,8 @@ def enumerate_python_arcs(
     try:
         original.read_file(path)
     except Exception as ex:  # pylint: disable=locally-disabled, broad-except
-        with open_binary_file(path) as file:
-            header = file.read(6)
+        with open_binary_file(path) as file_obj:
+            header = file_obj.read(6)
 
         if header == b'SQLite':
             display.error('File created by "coverage" 5.0+: %s' % os.path.relpath(path))
@@ -287,6 +295,8 @@ def sanitize_filename(
         new_name = re.sub(r'^.*' + re.escape(integration_temp_path) + '[^/]+/', root_path, filename)
         display.info('%s -> %s' % (filename, new_name), verbosity=3)
         filename = new_name
+
+    filename = os.path.abspath(filename)  # make sure path is absolute (will be relative if previously exported)
 
     return filename
 

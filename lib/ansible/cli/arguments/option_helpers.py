@@ -11,19 +11,13 @@ import os
 import os.path
 import sys
 import time
-import yaml
-
-try:
-    import _yaml
-    HAS_LIBYAML = True
-except ImportError:
-    HAS_LIBYAML = False
 
 from jinja2 import __version__ as j2_version
 
 import ansible
 from ansible import constants as C
 from ansible.module_utils._text import to_native
+from ansible.module_utils.common.yaml import HAS_LIBYAML, yaml_load
 from ansible.release import __version__
 from ansible.utils.path import unfrackpath
 
@@ -113,7 +107,8 @@ def _git_repo_info(repo_path):
         # Check if the .git is a file. If it is a file, it means that we are in a submodule structure.
         if os.path.isfile(repo_path):
             try:
-                gitdir = yaml.safe_load(open(repo_path)).get('gitdir')
+                with open(repo_path) as f:
+                    gitdir = yaml_load(f).get('gitdir')
                 # There is a possibility the .git file to have an absolute path.
                 if os.path.isabs(gitdir):
                     repo_path = gitdir
@@ -157,7 +152,7 @@ def _gitinfo():
 def version(prog=None):
     """ return ansible version """
     if prog:
-        result = [" ".join((prog, __version__))]
+        result = ["{0} [core {1}] ".format(prog, __version__)]
     else:
         result = [__version__]
 
@@ -250,6 +245,8 @@ def add_connect_options(parser):
                                help="connection type to use (default=%s)" % C.DEFAULT_TRANSPORT)
     connect_group.add_argument('-T', '--timeout', default=C.DEFAULT_TIMEOUT, type=int, dest='timeout',
                                help="override the connection timeout in seconds (default=%s)" % C.DEFAULT_TIMEOUT)
+
+    # ssh only
     connect_group.add_argument('--ssh-common-args', default='', dest='ssh_common_args',
                                help="specify common arguments to pass to sftp/scp/ssh (e.g. ProxyCommand)")
     connect_group.add_argument('--sftp-extra-args', default='', dest='sftp_extra_args',

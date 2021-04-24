@@ -55,7 +55,7 @@ The Python equivalent code would be:
 There are several ways to do it in Ansible, this is just one example:
 
 .. code-block:: YAML+Jinja
- :emphasize-lines: 3
+ :emphasize-lines: 4
  :caption: Way to extract matching keys from a list of dictionaries
 
   tasks:
@@ -94,6 +94,13 @@ There are several ways to do it in Ansible, this is just one example:
     }
 
 
+.. code-block:: YAML+Jinja
+ :caption: Get the unique list of values of a variable that vary per host
+
+    vars:
+        unique_value_list: "{{ groups['all'] | map ('extract', hostvars, 'varname') | list | unique}}"
+
+
 .. _find_mount_point:
 
 Find mount point
@@ -103,7 +110,7 @@ In this case, we want to find the mount point for a given path across our machin
 
 .. code-block:: YAML+Jinja
  :caption: Use selectattr to filter mounts into list I can then sort and select the last from
- :emphasize-lines: 7
+ :emphasize-lines: 8
 
    - hosts: all
      gather_facts: True
@@ -115,6 +122,7 @@ In this case, we want to find the mount point for a given path across our machin
         msg: "{{(ansible_facts.mounts | selectattr('mount', 'in', path) | list | sort(attribute='mount'))[-1]['mount']}}"
 
 
+.. _omit_elements_from_list:
 
 Omit elements from a list
 -------------------------
@@ -123,7 +131,7 @@ The special ``omit`` variable ONLY works with module options, but we can still u
 
 .. code-block:: YAML+Jinja
  :caption: Inline list filtering when feeding a module option
- :emphasize-lines: 3, 7
+ :emphasize-lines: 3, 6
 
     - name: Enable a list of Windows features, by name
       ansible.builtin.set_fact:
@@ -151,6 +159,53 @@ Another way is to avoid adding elements to the list in the first place, so you c
           - "bar"
 
 
+
+.. _combine_optional_values:
+
+Combine values from same list of dicts
+---------------------------------------
+Combining positive and negative filters from examples above, you can get a 'value when it exists' and a 'fallback' when it doesn't.
+
+.. code-block:: YAML+Jinja
+ :caption: Use selectattr and rejectattr to get the ansible_host or inventory_hostname as needed
+
+    - hosts: localhost
+      tasks:
+        - name: Check hosts in inventory that respond to ssh port
+          wait_for:
+            host: "{{ item }}"
+            port: 22
+          loop: '{{ has_ah + no_ah }}'
+          vars:
+            has_ah: '{{ hostvars|dictsort|selectattr("1.ansible_host", "defined")|map(attribute="1.ansible_host")|list }}'
+            no_ah: '{{ hostvars|dictsort|rejectattr("1.ansible_host", "defined")|map(attribute="0")|list }}'
+
+
+.. _custom_fileglob_variable:
+
+Custom Fileglob Based on a Variable
+-----------------------------------
+
+This example uses `Python argument list unpacking <https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists>`_ to create a custom list of fileglobs based on a variable.
+
+.. code-block:: YAML+Jinja
+  :caption: Using fileglob with a list based on a variable.
+
+    - hosts: all
+      vars:
+        mygroups
+          - prod
+          - web
+      tasks:
+        - name: Copy a glob of files based on a list of groups
+          copy:
+            src: "{{ item }}"
+            dest: "/tmp/{{ item }}"
+          loop: '{{ q("fileglob", *globlist) }}'
+          vars:
+            globlist: '{{ mygroups | map("regex_replace", "^(.*)$", "files/\1/*.conf") | list }}'
+
+
 .. _complex_type_transformations:
 
 Complex Type transformations
@@ -175,7 +230,7 @@ These example produces ``{"a": "b", "c": "d"}``
 
   vars:
       single_list: [ 'a', 'b', 'c', 'd' ]
-      mydict: "{{ dict(single_list) | slice(2) | list }}"
+      mydict: "{{ dict(single_list | slice(2) | list) }}"
 
 
 .. code-block:: YAML+Jinja

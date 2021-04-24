@@ -150,6 +150,11 @@ class BaseInventoryPlugin(AnsiblePlugin):
     """ Parses an Inventory Source"""
 
     TYPE = 'generator'
+
+    # 3rd party plugins redefine this to
+    # use custom group name sanitization
+    # since constructed features enforce
+    # it by default.
     _sanitize_group_name = staticmethod(to_safe_group_name)
 
     def __init__(self):
@@ -285,39 +290,13 @@ class BaseFileInventoryPlugin(BaseInventoryPlugin):
         super(BaseFileInventoryPlugin, self).__init__()
 
 
-class DeprecatedCache(object):
-    def __init__(self, real_cacheable):
-        self.real_cacheable = real_cacheable
-
-    def get(self, key):
-        display.deprecated('InventoryModule should utilize self._cache as a dict instead of self.cache. '
-                           'When expecting a KeyError, use self._cache[key] instead of using self.cache.get(key). '
-                           'self._cache is a dictionary and will return a default value instead of raising a KeyError '
-                           'when the key does not exist', version='2.12', collection_name='ansible.builtin')
-        return self.real_cacheable._cache[key]
-
-    def set(self, key, value):
-        display.deprecated('InventoryModule should utilize self._cache as a dict instead of self.cache. '
-                           'To set the self._cache dictionary, use self._cache[key] = value instead of self.cache.set(key, value). '
-                           'To force update the underlying cache plugin with the contents of self._cache before parse() is complete, '
-                           'call self.set_cache_plugin and it will use the self._cache dictionary to update the cache plugin',
-                           version='2.12', collection_name='ansible.builtin')
-        self.real_cacheable._cache[key] = value
-        self.real_cacheable.set_cache_plugin()
-
-    def __getattr__(self, name):
-        display.deprecated('InventoryModule should utilize self._cache instead of self.cache',
-                           version='2.12', collection_name='ansible.builtin')
-        return self.real_cacheable._cache.__getattribute__(name)
-
-
 class Cacheable(object):
 
     _cache = CacheObject()
 
     @property
     def cache(self):
-        return DeprecatedCache(self)
+        return self._cache
 
     def load_cache_plugin(self):
         plugin_name = self.get_option('cache_plugin')
@@ -381,15 +360,16 @@ class Constructable(object):
                     continue
                 self.inventory.set_variable(host, varname, composite)
 
-    def _add_host_to_composed_groups(self, groups, variables, host, strict=False):
+    def _add_host_to_composed_groups(self, groups, variables, host, strict=False, fetch_hostvars=True):
         ''' helper to create complex groups for plugins based on jinja2 conditionals, hosts that meet the conditional are added to group'''
         # process each 'group entry'
         if groups and isinstance(groups, dict):
-            variables = combine_vars(variables, self.inventory.get_host(host).get_vars())
+            if fetch_hostvars:
+                variables = combine_vars(variables, self.inventory.get_host(host).get_vars())
             self.templar.available_variables = variables
             for group_name in groups:
                 conditional = "{%% if %s %%} True {%% else %%} False {%% endif %%}" % groups[group_name]
-                group_name = original_safe(group_name, force=True)
+                group_name = self._sanitize_group_name(group_name)
                 try:
                     result = boolean(self.templar.template(conditional))
                 except Exception as e:
@@ -403,21 +383,25 @@ class Constructable(object):
                     # add host to group
                     self.inventory.add_child(group_name, host)
 
-    def _add_host_to_keyed_groups(self, keys, variables, host, strict=False):
+    def _add_host_to_keyed_groups(self, keys, variables, host, strict=False, fetch_hostvars=True):
         ''' helper to create groups for plugins based on variable values and add the corresponding hosts to it'''
         if keys and isinstance(keys, list):
             for keyed in keys:
                 if keyed and isinstance(keyed, dict):
 
-                    variables = combine_vars(variables, self.inventory.get_host(host).get_vars())
+                    if fetch_hostvars:
+                        variables = combine_vars(variables, self.inventory.get_host(host).get_vars())
                     try:
                         key = self._compose(keyed.get('key'), variables)
                     except Exception as e:
                         if strict:
                             raise AnsibleParserError("Could not generate group for host %s from %s entry: %s" % (host, keyed.get('key'), to_native(e)))
                         continue
-
-                    if key:
+                    default_value_name = keyed.get('default_value', None)
+                    trailing_separator = keyed.get('trailing_separator')
+                    if trailing_separator is not None and default_value_name is not None:
+                        raise AnsibleParserError("parameters are mutually exclusive for keyed groups: default_value|trailing_separator")
+                    if key or (key == '' and default_value_name is not None):
                         prefix = keyed.get('prefix', '')
                         sep = keyed.get('separator', '_')
                         raw_parent_name = keyed.get('parent_group', None)
@@ -431,14 +415,28 @@ class Constructable(object):
 
                         new_raw_group_names = []
                         if isinstance(key, string_types):
-                            new_raw_group_names.append(key)
+                            # if key is empty, 'default_value' will be used as group name
+                            if key == '' and default_value_name is not None:
+                                new_raw_group_names.append(default_value_name)
+                            else:
+                                new_raw_group_names.append(key)
                         elif isinstance(key, list):
                             for name in key:
-                                new_raw_group_names.append(name)
+                                # if list item is empty, 'default_value' will be used as group name
+                                if name == '' and default_value_name is not None:
+                                    new_raw_group_names.append(default_value_name)
+                                else:
+                                    new_raw_group_names.append(name)
                         elif isinstance(key, Mapping):
                             for (gname, gval) in key.items():
-                                name = '%s%s%s' % (gname, sep, gval)
-                                new_raw_group_names.append(name)
+                                bare_name = '%s%s%s' % (gname, sep, gval)
+                                if gval == '':
+                                    # key's value is empty
+                                    if default_value_name is not None:
+                                        bare_name = '%s%s%s' % (gname, sep, default_value_name)
+                                    elif trailing_separator is False:
+                                        bare_name = gname
+                                new_raw_group_names.append(bare_name)
                         else:
                             raise AnsibleParserError("Invalid group name format, expected a string or a list of them or dictionary, got: %s" % type(key))
 

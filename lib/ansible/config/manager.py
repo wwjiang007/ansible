@@ -14,17 +14,11 @@ import tempfile
 import traceback
 from collections import namedtuple
 
-from yaml import load as yaml_load
-try:
-    # use C version if possible for speedup
-    from yaml import CSafeLoader as SafeLoader
-except ImportError:
-    from yaml import SafeLoader
-
 from ansible.config.data import ConfigData
 from ansible.errors import AnsibleOptionsError, AnsibleError
 from ansible.module_utils._text import to_text, to_bytes, to_native
 from ansible.module_utils.common._collections_compat import Mapping, Sequence
+from ansible.module_utils.common.yaml import yaml_load
 from ansible.module_utils.six import PY3, string_types
 from ansible.module_utils.six.moves import configparser
 from ansible.module_utils.parsing.convert_bool import boolean
@@ -315,7 +309,7 @@ class ConfigManager(object):
         yml_file = to_bytes(yml_file)
         if os.path.exists(yml_file):
             with open(yml_file, 'rb') as config_def:
-                return yaml_load(config_def, Loader=SafeLoader) or {}
+                return yaml_load(config_def) or {}
         raise AnsibleError(
             "Missing base YAML definition file (bad install?): %s" % to_native(yml_file))
 
@@ -329,7 +323,10 @@ class ConfigManager(object):
         ftype = get_config_type(cfile)
         if cfile is not None:
             if ftype == 'ini':
-                self._parsers[cfile] = configparser.ConfigParser()
+                kwargs = {}
+                if PY3:
+                    kwargs['inline_comment_prefixes'] = (';',)
+                self._parsers[cfile] = configparser.ConfigParser(**kwargs)
                 with open(to_bytes(cfile), 'rb') as f:
                     try:
                         cfg_text = to_text(f.read(), errors='surrogate_or_strict')
@@ -346,7 +343,7 @@ class ConfigManager(object):
             # FIXME: this should eventually handle yaml config files
             # elif ftype == 'yaml':
             #     with open(cfile, 'rb') as config_stream:
-            #         self._parsers[cfile] = yaml.safe_load(config_stream)
+            #         self._parsers[cfile] = yaml_load(config_stream)
             else:
                 raise AnsibleOptionsError("Unsupported configuration file type: %s" % to_native(ftype))
 
@@ -384,7 +381,7 @@ class ConfigManager(object):
 
         return ret
 
-    def get_configuration_definitions(self, plugin_type=None, name=None):
+    def get_configuration_definitions(self, plugin_type=None, name=None, ignore_private=False):
         ''' just list the possible settings, either base or for specific plugins or plugin '''
 
         ret = {}
@@ -394,6 +391,11 @@ class ConfigManager(object):
             ret = self._plugins.get(plugin_type, {})
         else:
             ret = self._plugins.get(plugin_type, {}).get(name, {})
+
+        if ignore_private:
+            for cdef in list(ret.keys()):
+                if cdef.startswith('_'):
+                    del ret[cdef]
 
         return ret
 
@@ -483,6 +485,12 @@ class ConfigManager(object):
                     if value is not None:
                         origin = 'keyword: %s' % keyword
 
+                if value is None and 'cli' in defs[config]:
+                    # avoid circular import .. until valid
+                    from ansible import context
+                    value, origin = self._loop_entries(context.CLIARGS, defs[config]['cli'])
+                    origin = 'cli: %s' % origin
+
                 # env vars are next precedence
                 if value is None and defs[config].get('env'):
                     value, origin = self._loop_entries(py3compat.environ, defs[config]['env'])
@@ -535,6 +543,20 @@ class ConfigManager(object):
                 else:
                     raise AnsibleOptionsError('Invalid type for configuration option %s: %s' %
                                               (to_native(_get_entry(plugin_type, plugin_name, config)), to_native(e)))
+
+            # deal with restricted values
+            if value is not None and 'choices' in defs[config] and defs[config]['choices'] is not None:
+                invalid_choices = True  # assume the worst!
+                if defs[config].get('type') == 'list':
+                    # for a list type, compare all values in type are allowed
+                    invalid_choices = not all(choice in defs[config]['choices'] for choice in value)
+                else:
+                    # these should be only the simple data types (string, int, bool, float, etc) .. ignore dicts for now
+                    invalid_choices = value not in defs[config]['choices']
+
+                if invalid_choices:
+                    raise AnsibleOptionsError('Invalid value "%s" for configuration option "%s", valid values are: %s' %
+                                              (value, to_native(_get_entry(plugin_type, plugin_name, config)), defs[config]['choices']))
 
             # deal with deprecation of the setting
             if 'deprecated' in defs[config] and origin != 'default':

@@ -20,6 +20,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import re
+import traceback
 
 from ansible.errors.yaml_strings import (
     YAML_COMMON_DICT_ERROR,
@@ -100,7 +101,21 @@ class AnsibleError(Exception):
         with open(file_name, 'r') as f:
             lines = f.readlines()
 
+            # In case of a YAML loading error, PyYAML will report the very last line
+            # as the location of the error. Avoid an index error here in order to
+            # return a helpful message.
+            file_length = len(lines)
+            if line_number >= file_length:
+                line_number = file_length - 1
+
+            # If target_line contains only whitespace, move backwards until
+            # actual code is found. If there are several empty lines after target_line,
+            # the error lines would just be blank, which is not very helpful.
             target_line = lines[line_number]
+            while not target_line.strip():
+                line_number -= 1
+                target_line = lines[line_number]
+
             if line_number > 0:
                 prev_line = lines[line_number - 1]
 
@@ -317,7 +332,7 @@ class AnsibleActionFail(AnsibleAction):
     def __init__(self, message="", obj=None, show_content=True, suppress_extended_error=False, orig_exc=None, result=None):
         super(AnsibleActionFail, self).__init__(message=message, obj=obj, show_content=show_content,
                                                 suppress_extended_error=suppress_extended_error, orig_exc=orig_exc, result=result)
-        self.result.update({'failed': True, 'msg': message})
+        self.result.update({'failed': True, 'msg': message, 'exception': traceback.format_exc()})
 
 
 class _AnsibleActionDone(AnsibleAction):

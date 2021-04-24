@@ -51,9 +51,36 @@ options:
     type: str
     default: main
     version_added: '2.8'
+  rolespec_validate:
+    description:
+      - Perform role argument spec validation if an argument spec is defined.
+    type: bool
+    default: yes
+    version_added: '2.11'
+extends_documentation_fragment:
+- action_common_attributes
+attributes:
+    async:
+        support: none
+    become:
+        support: none
+    bypass_host_loop:
+        support: partial
+    conditional:
+        support: none
+    connection:
+        support: none
+    delegation:
+        support: none
+    loops:
+        support: none
+    tags:
+        support: none
+    until:
+        support: none
 notes:
   - Handlers are made available to the whole play.
-  - Since Ansible 2.7 variables defined in C(vars) and C(defaults) for the role are exposed at playbook parsing time.
+  - Since Ansible 2.7 variables defined in C(vars) and C(defaults) for the role are exposed to the play at playbook parsing time.
     Due to this, these variables will be accessible to roles and tasks executed before the location of the
     M(ansible.builtin.import_role) task.
   - Unlike M(ansible.builtin.include_role) variable exposure is not configurable, and will always be exposed.

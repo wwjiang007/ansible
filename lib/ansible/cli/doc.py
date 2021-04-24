@@ -26,6 +26,7 @@ from ansible.errors import AnsibleError, AnsibleOptionsError, AnsibleParserError
 from ansible.module_utils._text import to_native, to_text
 from ansible.module_utils.common._collections_compat import Container, Sequence
 from ansible.module_utils.common.json import AnsibleJSONEncoder
+from ansible.module_utils.common.yaml import yaml_dump
 from ansible.module_utils.compat import importlib
 from ansible.module_utils.six import iteritems, string_types
 from ansible.parsing.plugin_docs import read_docstub
@@ -54,6 +55,7 @@ def jdump(text):
     try:
         display.display(json.dumps(text, cls=AnsibleJSONEncoder, sort_keys=True, indent=4))
     except TypeError as e:
+        display.vvv(traceback.format_exc())
         raise AnsibleError('We could not convert all the documentation into JSON as there was a conversion issue: %s' % to_native(e))
 
 
@@ -78,7 +80,7 @@ class RoleMixin(object):
     Note: The methods for actual display of role data are not present here.
     """
 
-    ROLE_ARGSPEC_FILE = 'argument_specs.yml'
+    ROLE_ARGSPEC_FILE = 'main.yml'
 
     def _load_argspec(self, role_name, collection_path=None, role_path=None):
         if collection_path:
@@ -90,12 +92,17 @@ class RoleMixin(object):
 
         try:
             with open(path, 'r') as f:
-                return from_yaml(f.read(), file_name=path)
+                data = from_yaml(f.read(), file_name=path)
+                if data is None:
+                    data = {}
+                return data.get('argument_specs', {})
         except (IOError, OSError) as e:
             raise AnsibleParserError("An error occurred while trying to read the file '%s': %s" % (path, to_native(e)), orig_exc=e)
 
     def _find_all_normal_roles(self, role_paths, name_filters=None):
         """Find all non-collection roles that have an argument spec file.
+
+        Note that argument specs do not actually need to exist within the spec file.
 
         :param role_paths: A tuple of one or more role paths. When a role with the same name
             is found in multiple paths, only the first-found role is returned.
@@ -108,7 +115,7 @@ class RoleMixin(object):
         for path in role_paths:
             if not os.path.isdir(path):
                 continue
-            # Check each subdir for a meta/argument_specs.yml file
+            # Check each subdir for a meta/main.yml file
             for entry in os.listdir(path):
                 role_path = os.path.join(path, entry)
                 full_path = os.path.join(role_path, 'meta', self.ROLE_ARGSPEC_FILE)
@@ -120,7 +127,9 @@ class RoleMixin(object):
         return found
 
     def _find_all_collection_roles(self, name_filters=None, collection_filter=None):
-        """Find all collection roles with an argument spec.
+        """Find all collection roles with an argument spec file.
+
+        Note that argument specs do not actually need to exist within the spec file.
 
         :param name_filters: A tuple of one or more role names used to filter the results. These
             might be fully qualified with the collection name (e.g., community.general.roleA)
@@ -174,10 +183,30 @@ class RoleMixin(object):
         summary = {}
         summary['collection'] = collection
         summary['entry_points'] = {}
-        for entry_point in argspec.keys():
-            entry_spec = argspec[entry_point] or {}
-            summary['entry_points'][entry_point] = entry_spec.get('short_description', '')
+        for ep in argspec.keys():
+            entry_spec = argspec[ep] or {}
+            summary['entry_points'][ep] = entry_spec.get('short_description', '')
         return (fqcn, summary)
+
+    def _build_doc(self, role, path, collection, argspec, entry_point):
+        if collection:
+            fqcn = '.'.join([collection, role])
+        else:
+            fqcn = role
+        doc = {}
+        doc['path'] = path
+        doc['collection'] = collection
+        doc['entry_points'] = {}
+        for ep in argspec.keys():
+            if entry_point is None or ep == entry_point:
+                entry_spec = argspec[ep] or {}
+                doc['entry_points'][ep] = entry_spec
+
+        # If we didn't add any entry points (b/c of filtering), ignore this entry.
+        if len(doc['entry_points'].keys()) == 0:
+            doc = None
+
+        return (fqcn, doc)
 
     def _create_role_list(self, roles_path, collection_filter=None):
         """Return a dict describing the listing of all roles with arg specs.
@@ -239,37 +268,20 @@ class RoleMixin(object):
         """
         roles = self._find_all_normal_roles(roles_path, name_filters=role_names)
         collroles = self._find_all_collection_roles(name_filters=role_names)
+
         result = {}
-
-        def build_doc(role, path, collection, argspec):
-            if collection:
-                fqcn = '.'.join([collection, role])
-            else:
-                fqcn = role
-            if fqcn not in result:
-                result[fqcn] = {}
-            doc = {}
-            doc['path'] = path
-            doc['collection'] = collection
-            doc['entry_points'] = {}
-            for ep in argspec.keys():
-                if entry_point is None or ep == entry_point:
-                    entry_spec = argspec[ep] or {}
-                    doc['entry_points'][ep] = entry_spec
-
-            # If we didn't add any entry points (b/c of filtering), remove this entry.
-            if len(doc['entry_points'].keys()) == 0:
-                del result[fqcn]
-            else:
-                result[fqcn] = doc
 
         for role, role_path in roles:
             argspec = self._load_argspec(role, role_path=role_path)
-            build_doc(role, role_path, '', argspec)
+            fqcn, doc = self._build_doc(role, role_path, '', argspec, entry_point)
+            if doc:
+                result[fqcn] = doc
 
         for role, collection, collection_path in collroles:
             argspec = self._load_argspec(role, collection_path=collection_path)
-            build_doc(role, collection_path, collection, argspec)
+            fqcn, doc = self._build_doc(role, collection_path, collection, argspec, entry_point)
+            if doc:
+                result[fqcn] = doc
 
         return result
 
@@ -770,7 +782,8 @@ class DocCLI(CLI, RoleMixin):
             try:
                 text = DocCLI.get_man_text(doc, collection_name, plugin_type)
             except Exception as e:
-                raise AnsibleError("Unable to retrieve documentation from '%s' due to: %s" % (plugin, to_native(e)))
+                display.vvv(traceback.format_exc())
+                raise AnsibleError("Unable to retrieve documentation from '%s' due to: %s" % (plugin, to_native(e)), orig_exc=e)
 
         return text
 
@@ -864,6 +877,7 @@ class DocCLI(CLI, RoleMixin):
                 pfiles[plugin] = filename
 
             except Exception as e:
+                display.vvv(traceback.format_exc())
                 raise AnsibleError("Failed reading docs at %s: %s" % (plugin, to_native(e)), orig_exc=e)
 
         return pfiles
@@ -911,9 +925,7 @@ class DocCLI(CLI, RoleMixin):
 
     @staticmethod
     def _dump_yaml(struct, indent):
-        return DocCLI.tty_ify('\n'.join([indent + line for line in
-                                         yaml.dump(struct, default_flow_style=False,
-                                                   Dumper=AnsibleDumper).split('\n')]))
+        return DocCLI.tty_ify('\n'.join([indent + line for line in yaml.dump(struct, default_flow_style=False, Dumper=AnsibleDumper).split('\n')]))
 
     @staticmethod
     def add_fields(text, fields, limit, opt_indent, return_values=False, base_indent=''):
@@ -1041,6 +1053,11 @@ class DocCLI(CLI, RoleMixin):
                 DocCLI.add_fields(text, doc.pop('options'), limit, opt_indent)
                 text.append('')
 
+            if doc.get('attributes'):
+                text.append("ATTRIBUTES:\n")
+                text.append(DocCLI._dump_yaml(doc.pop('attributes'), opt_indent))
+                text.append('')
+
             # generic elements we will handle identically
             for k in ('author',):
                 if k not in doc:
@@ -1105,6 +1122,11 @@ class DocCLI(CLI, RoleMixin):
             DocCLI.add_fields(text, doc.pop('options'), limit, opt_indent)
             text.append('')
 
+        if doc.get('attributes', False):
+            text.append("ATTRIBUTES:\n")
+            text.append(DocCLI._dump_yaml(doc.pop('attributes'), opt_indent))
+            text.append('')
+
         if doc.get('notes', False):
             text.append("NOTES:")
             for note in doc['notes']:
@@ -1167,7 +1189,7 @@ class DocCLI(CLI, RoleMixin):
             if isinstance(doc['plainexamples'], string_types):
                 text.append(doc.pop('plainexamples').strip())
             else:
-                text.append(yaml.dump(doc.pop('plainexamples'), indent=2, default_flow_style=False))
+                text.append(yaml_dump(doc.pop('plainexamples'), indent=2, default_flow_style=False))
             text.append('')
             text.append('')
 
