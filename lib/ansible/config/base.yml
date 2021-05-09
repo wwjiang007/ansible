@@ -3,12 +3,16 @@
 ---
 ALLOW_WORLD_READABLE_TMPFILES:
   name: Allow world-readable temporary files
-  default: False
   description:
     - This setting has been moved to the individual shell plugins as a plugin option :ref:`shell_plugins`.
     - The existing configuration settings are still accepted with the shell plugin adding additional options, like variables.
     - This message will be removed in 2.14.
   type: boolean
+  default: False
+  deprecated:  # (kept for autodetection and removal, deprecation is irrelevant since w/o settings this can never show runtime msg)
+      why: moved to shell plugins
+      version: "2.14"
+      alternatives: 'world_readable_tmp'
 ANSIBLE_CONNECTION_PATH:
   name: Path of ansible-connection script
   default: null
@@ -478,7 +482,7 @@ DEFAULT_BECOME_EXE:
   - {key: become_exe, section: privilege_escalation}
 DEFAULT_BECOME_FLAGS:
   name: Set 'become' executable options
-  default: ''
+  default: ~
   description: Flags to pass to the privilege escalation executable.
   env: [{name: ANSIBLE_BECOME_FLAGS}]
   ini:
@@ -877,7 +881,7 @@ DEFAULT_MANAGED_STR:
   yaml: {key: defaults.ansible_managed}
 DEFAULT_MODULE_ARGS:
   name: Adhoc default arguments
-  default: ''
+  default: ~
   description:
     - This sets the default arguments to pass to the ``ansible`` adhoc binary if no ``-a`` is specified.
   env: [{name: ANSIBLE_MODULE_ARGS}]
@@ -998,7 +1002,6 @@ DEFAULT_REMOTE_PORT:
   yaml: {key: defaults.remote_port}
 DEFAULT_REMOTE_USER:
   name: Login/Remote User
-  default:
   description:
     - Sets the login user for the target machines
     - "When blank it uses the connection plugin's default, normally the user currently executing Ansible."
@@ -1184,7 +1187,6 @@ DEFAULT_VAULT_IDENTITY:
   yaml: {key: defaults.vault_identity}
 DEFAULT_VAULT_ENCRYPT_IDENTITY:
   name: Vault id to use for encryption
-  default:
   description: 'The vault_id to use for encrypting by default. If multiple vault_ids are provided, this specifies which to use for encryption. The --encrypt-vault-id cli option overrides the configured value.'
   env: [{name: ANSIBLE_VAULT_ENCRYPT_IDENTITY}]
   ini:
@@ -1363,7 +1365,6 @@ GALAXY_IGNORE_CERTS:
   type: boolean
 GALAXY_ROLE_SKELETON:
   name: Galaxy role or collection skeleton directory
-  default:
   description: Role or collection skeleton directory to use as a template for the ``init`` action in ``ansible-galaxy``, same as ``--role-skeleton``.
   env: [{name: ANSIBLE_GALAXY_ROLE_SKELETON}]
   ini:
@@ -1482,6 +1483,7 @@ INTERPRETER_PYTHON_DISTRO_MAP:
     centos: &rhelish
       '6': /usr/bin/python
       '8': /usr/libexec/platform-python
+      '9': /usr/bin/python3
     debian:
       '8': /usr/bin/python
       '10': /usr/bin/python3
@@ -1553,33 +1555,53 @@ INVENTORY_ANY_UNPARSED_IS_FAILED:
 INVENTORY_CACHE_ENABLED:
   name: Inventory caching enabled
   default: False
-  description: Toggle to turn on inventory caching
+  description:
+    - Toggle to turn on inventory caching.
+    - This setting has been moved to the individual inventory plugins as a plugin option :ref:`inventory_plugins`.
+    - The existing configuration settings are still accepted with the inventory plugin adding additional options from inventory configuration.
+    - This message will be removed in 2.16.
   env: [{name: ANSIBLE_INVENTORY_CACHE}]
   ini:
   - {key: cache, section: inventory}
   type: bool
 INVENTORY_CACHE_PLUGIN:
   name: Inventory cache plugin
-  description: The plugin for caching inventory. If INVENTORY_CACHE_PLUGIN is not provided CACHE_PLUGIN can be used instead.
+  description:
+    - The plugin for caching inventory.
+    - This setting has been moved to the individual inventory plugins as a plugin option :ref:`inventory_plugins`.
+    - The existing configuration settings are still accepted with the inventory plugin adding additional options from inventory and fact cache configuration.
+    - This message will be removed in 2.16.
   env: [{name: ANSIBLE_INVENTORY_CACHE_PLUGIN}]
   ini:
   - {key: cache_plugin, section: inventory}
 INVENTORY_CACHE_PLUGIN_CONNECTION:
   name: Inventory cache plugin URI to override the defaults section
-  description: The inventory cache connection. If INVENTORY_CACHE_PLUGIN_CONNECTION is not provided CACHE_PLUGIN_CONNECTION can be used instead.
+  description:
+    - The inventory cache connection.
+    - This setting has been moved to the individual inventory plugins as a plugin option :ref:`inventory_plugins`.
+    - The existing configuration settings are still accepted with the inventory plugin adding additional options from inventory and fact cache configuration.
+    - This message will be removed in 2.16.
   env: [{name: ANSIBLE_INVENTORY_CACHE_CONNECTION}]
   ini:
   - {key: cache_connection, section: inventory}
 INVENTORY_CACHE_PLUGIN_PREFIX:
   name: Inventory cache plugin table prefix
-  description: The table prefix for the cache plugin. If INVENTORY_CACHE_PLUGIN_PREFIX is not provided CACHE_PLUGIN_PREFIX can be used instead.
+  description:
+    - The table prefix for the cache plugin.
+    - This setting has been moved to the individual inventory plugins as a plugin option :ref:`inventory_plugins`.
+    - The existing configuration settings are still accepted with the inventory plugin adding additional options from inventory and fact cache configuration.
+    - This message will be removed in 2.16.
   env: [{name: ANSIBLE_INVENTORY_CACHE_PLUGIN_PREFIX}]
-  default: ansible_facts
+  default: ansible_inventory_
   ini:
   - {key: cache_prefix, section: inventory}
 INVENTORY_CACHE_TIMEOUT:
   name: Inventory cache plugin expiration timeout
-  description: Expiration timeout for the inventory cache plugin data. If INVENTORY_CACHE_TIMEOUT is not provided CACHE_TIMEOUT can be used instead.
+  description:
+    - Expiration timeout for the inventory cache plugin data.
+    - This setting has been moved to the individual inventory plugins as a plugin option :ref:`inventory_plugins`.
+    - The existing configuration settings are still accepted with the inventory plugin adding additional options from inventory and fact cache configuration.
+    - This message will be removed in 2.16.
   default: 3600
   env: [{name: ANSIBLE_INVENTORY_CACHE_TIMEOUT}]
   ini:
