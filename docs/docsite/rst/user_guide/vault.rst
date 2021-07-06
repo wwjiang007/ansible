@@ -94,7 +94,7 @@ You can store your vault passwords on the system keyring, in a database, or in a
 
 To create a vault password client script:
 
-  * Create a file with a name ending in ``-client.py``
+  * Create a file with a name ending in either ``-client`` or ``-client.EXTENSION``
   * Make the file executable
   * Within the script itself:
       * Print the passwords to standard output
@@ -113,8 +113,7 @@ Ansible executes the client script with a ``--vault-id`` option so the script kn
 
     contrib/vault/vault-keyring-client.py --vault-id dev
 
-For an example of a client script that loads passwords from the system keyring, see :file:`contrib/vault/vault-keyring-client.py`.
-
+For an example of a client script that loads passwords from the system keyring, see the `vault-keyring-client script <https://github.com/ansible-community/contrib-scripts/blob/main/vault/vault-keyring-client.py>`_.
 
 Encrypting content with Ansible Vault
 =====================================
@@ -572,18 +571,6 @@ When are encrypted files made visible?
 ======================================
 
 In general, content you encrypt with Ansible Vault remains encrypted after execution. However, there is one exception. If you pass an encrypted file as the ``src`` argument to the :ref:`copy <copy_module>`, :ref:`template <template_module>`, :ref:`unarchive <unarchive_module>`, :ref:`script <script_module>` or :ref:`assemble <assemble_module>` module, the file will not be encrypted on the target host (assuming you supply the correct vault password when you run the play). This behavior is intended and useful. You can encrypt a configuration file or template to avoid sharing the details of your configuration, but when you copy that configuration to servers in your environment, you want it to be decrypted so local users and processes can access it.
-
-.. _speeding_up_vault:
-
-Speeding up Ansible Vault
-=========================
-
-If you have many encrypted files, decrypting them at startup may cause a perceptible delay. To speed this up, install the cryptography package:
-
-.. code-block:: bash
-
-    pip install cryptography
-
 
 .. _vault_format:
 

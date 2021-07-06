@@ -440,16 +440,16 @@ class ActionBase(with_metaclass(ABCMeta, object)):
         '''Determine if temporary path should be deleted or kept by user request/config'''
         return tmp_path and self._cleanup_remote_tmp and not C.DEFAULT_KEEP_REMOTE_FILES and "-tmp-" in tmp_path
 
-    def _remove_tmp_path(self, tmp_path):
+    def _remove_tmp_path(self, tmp_path, force=False):
         '''Remove a temporary path we created. '''
 
         if tmp_path is None and self._connection._shell.tmpdir:
             tmp_path = self._connection._shell.tmpdir
 
-        if self._should_remove_tmp_path(tmp_path):
+        if force or self._should_remove_tmp_path(tmp_path):
             cmd = self._connection._shell.remove(tmp_path, recurse=True)
-            # If we have gotten here we have a working ssh configuration.
-            # If ssh breaks we could leave tmp directories out on the remote system.
+            # If we have gotten here we have a working connection configuration.
+            # If the connection breaks we could leave tmp directories out on the remote system.
             tmp_rm_res = self._low_level_execute_command(cmd, sudoable=False)
 
             if tmp_rm_res.get('rc', 0) != 0:
@@ -630,7 +630,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
         # pass that argument as the first element of remote_paths. So we end
         # up running `chmod +a [that argument] [file 1] [file 2] ...`
         try:
-            res = self._remote_chmod([chmod_acl_mode] + remote_paths, '+a')
+            res = self._remote_chmod([chmod_acl_mode] + list(remote_paths), '+a')
         except AnsibleAuthenticationFailure as e:
             # Solaris-based chmod will return 5 when it sees an invalid mode,
             # and +a is invalid there. Because it returns 5, which is the same
@@ -794,7 +794,8 @@ class ActionBase(with_metaclass(ABCMeta, object)):
         return mystat['stat']
 
     def _remote_checksum(self, path, all_vars, follow=False):
-        '''
+        """Deprecated. Use _execute_remote_stat() instead.
+
         Produces a remote checksum given a path,
         Returns a number 0-4 for specific errors instead of checksum, also ensures it is different
         0 = unknown error
@@ -803,7 +804,9 @@ class ActionBase(with_metaclass(ABCMeta, object)):
         3 = its a directory, not a file
         4 = stat module failed, likely due to not finding python
         5 = appropriate json module not found
-        '''
+        """
+        self._display.deprecated("The '_remote_checksum()' method is deprecated. "
+                                 "The plugin author should update the code to use '_execute_remote_stat()' instead", "2.16")
         x = "0"  # unknown error has occurred
         try:
             remote_stat = self._execute_remote_stat(path, all_vars, follow=follow)

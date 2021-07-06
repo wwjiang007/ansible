@@ -15,12 +15,16 @@ Distributing collections involves three major steps:
    :local:
    :depth: 2
 
+.. _config_distribution_server:
+
 Configuring your distribution server or servers
 ================================================
 
 1. Get a namespace on each distribution server you want to use (Galaxy, private Automation Hub, Red Hat Automation Hub).
 2. Get an API token for each distribution server you want to use.
 3. Specify the API token for each distribution server you want to use.
+
+.. _get_namespace:
 
 Getting a namespace
 -------------------
@@ -42,6 +46,8 @@ To get your API token:
 * For Galaxy, go to the `Galaxy profile preferences <https://galaxy.ansible.com/me/preferences>`_ page and click :guilabel:`API Key`.
 * For Automation Hub, go to `the token page <https://cloud.redhat.com/ansible/automation-hub/token/>`_ and click :guilabel:`Load token`.
 
+.. _galaxy_specify_token:
+
 Specifying your API token
 -------------------------
 
@@ -49,6 +55,8 @@ Once you have retrieved your API token, you can specify the correct token for ea
 
 * Pass the token to  the ``ansible-galaxy`` command using the ``--token``.
 * Configure the token within a Galaxy server list in your :file:`ansible.cfg` file.
+
+.. _galaxy_use_token_arg:
 
 Specifying your API token with the ``--token`` argument
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -58,6 +66,8 @@ You can use the ``--token`` argument with the ``ansible-galaxy`` command (in con
 .. code-block:: text
 
     ansible-galaxy collection publish ./geerlingguy-collection-1.2.3.tar.gz --token=<key goes here>
+
+.. _galaxy_token_ansible_cfg:
 
 Specifying your API token with a Galaxy server list
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -189,6 +199,8 @@ You can also test a version of your collection in development by installing it f
 
 .. include:: ../shared_snippets/installing_collections_git_repo.txt
 
+.. _publish_collection:
+
 Publishing a collection
 =======================
 
@@ -197,6 +209,8 @@ Once you have a namespace and an API token for each distribution server you want
 Each time you add features or make changes to your collection, you must create a new collection artifact and publish a new version of the collection. For details on versioning, see :ref:`collection_versions`.
 
 .. _upload_collection_ansible_galaxy:
+
+.. _publish_collection_galaxy_cmd:
 
 Publish a collection using ``ansible-galaxy``
 ---------------------------------------------
@@ -216,6 +230,16 @@ To upload the collection artifact with the ``ansible-galaxy`` command:
 
 The ``ansible-galaxy collection publish`` command triggers an import process, just as if you uploaded the collection through the Galaxy website. The command waits until the import process completes before reporting the status back. If you want to continue without waiting for the import result, use the ``--no-wait`` argument and manually look at the import progress in your `My Imports <https://galaxy.ansible.com/my-imports/>`_ page.
 
+Alternately, you can publish to Galaxy without configuring the token in :file:`ansible.cfg`.  Use the ``--token`` argument directly on the command line.
+
+.. code-block:: bash
+
+     ansible-galaxy collection publish path/to/my_namespace-my_collection-1.0.0.tar.gz --token abcdefghijklmnopqrtuvwxyz
+     
+.. note::
+
+	Using the ``--token`` argument is not recommended because passing secrets on the command line may lead to exposing them to others on the system
+	
 
 .. _upload_collection_galaxy:
 
@@ -237,5 +261,5 @@ Once Galaxy uploads and accepts a collection, you will be redirected to the **My
        Learn how to install and use collections.
    `Mailing List <https://groups.google.com/group/ansible-devel>`_
        The development mailing list
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

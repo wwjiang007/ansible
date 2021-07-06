@@ -28,7 +28,7 @@ Ansible integrates seamlessly with `Cobbler <https://cobbler.github.io>`_, a Lin
 While primarily used to kickoff OS installations and manage DHCP and DNS, Cobbler has a generic
 layer that can represent data for multiple configuration management systems (even at the same time) and serve as a 'lightweight CMDB'.
 
-To tie your Ansible inventory to Cobbler, copy `this script <https://raw.githubusercontent.com/ansible-collections/community.general/main/scripts/inventory/cobbler.py>`_ to ``/etc/ansible`` and ``chmod +x`` the file. Run ``cobblerd`` any time you use Ansible and use the ``-i`` command line option (for example, ``-i /etc/ansible/cobbler.py``) to communicate with Cobbler using Cobbler's XMLRPC API.
+To tie your Ansible inventory to Cobbler, copy `this script <https://raw.githubusercontent.com/ansible-community/contrib-scripts/main/inventory/cobbler.py>`_ to ``/etc/ansible`` and ``chmod +x`` the file. Run ``cobblerd`` any time you use Ansible and use the ``-i`` command line option (for example, ``-i /etc/ansible/cobbler.py``) to communicate with Cobbler using Cobbler's XMLRPC API.
 
 Add a ``cobbler.ini`` file in ``/etc/ansible`` so Ansible knows where the Cobbler server is and some cache improvements can be used. For example:
 
@@ -245,5 +245,5 @@ the dynamic groups as empty in the static inventory file. For example:
        All about static inventory files
    `Mailing List <https://groups.google.com/group/ansible-project>`_
        Questions? Help? Ideas?  Stop by the list on Google Groups
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

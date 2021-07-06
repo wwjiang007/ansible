@@ -688,7 +688,7 @@ To select a single element or a data subset from a complex data structure in JSO
 	This filter has migrated to the `community.general <https://galaxy.ansible.com/community/general>`_ collection. Follow the installation instructions to install that collection.
 
 
-.. note:: You must manually install the **jmespath** dependency on the Ansible controller before using this filter. This filter is built upon **jmespath**, and you can use the same syntax. For examples, see `jmespath examples <http://jmespath.org/examples.html>`_.
+.. note:: You must manually install the **jmespath** dependency on the Ansible controller before using this filter. This filter is built upon **jmespath**, and you can use the same syntax. For examples, see `jmespath examples <https://jmespath.org/examples.html>`_.
 
 Consider this data structure::
 
@@ -1250,7 +1250,7 @@ is an XPath expression used to get the attributes of the ``vlan`` tag in output 
     </rpc-reply>
 
 .. note::
-  For more information on supported XPath expressions, see `XPath Support <https://docs.python.org/2/library/xml.etree.elementtree.html#xpath-support>`_.
+  For more information on supported XPath expressions, see `XPath Support <https://docs.python.org/3/library/xml.etree.elementtree.html#xpath-support>`_.
 
 Network VLAN filters
 --------------------
@@ -1326,7 +1326,7 @@ An idempotent method to generate unique hashes per system is to use a salt that 
     {{ 'secretpassword' | password_hash('sha512', 65534 | random(seed=inventory_hostname) | string) }}
     # => "$6$43927$lQxPKz2M2X.NWO.gK.t7phLwOKQMcSq72XxDZQ0XzYV6DlL1OD72h417aj16OnHTGxNzhftXJQBcjbunLEepM0"
 
-Hash types available depend on the control system running Ansible, 'hash' depends on hashlib, password_hash depends on passlib (https://passlib.readthedocs.io/en/stable/lib/passlib.hash.html).
+Hash types available depend on the control system running Ansible, 'hash' depends on `hashlib <https://docs.python.org/3.8/library/hashlib.html>`_, password_hash depends on `passlib <https://passlib.readthedocs.io/en/stable/lib/passlib.hash.html>`_. The `crypt <https://docs.python.org/3.8/library/crypt.html>`_ is used as a fallback if ``passlib`` is not installed.
 
 .. versionadded:: 2.7
 
@@ -1334,6 +1334,20 @@ Some hash types allow providing a rounds parameter::
 
     {{ 'secretpassword' | password_hash('sha256', 'mysecretsalt', rounds=10000) }}
     # => "$5$rounds=10000$mysecretsalt$Tkm80llAxD4YHll6AgNIztKn0vzAACsuuEfYeGP7tm7"
+
+Hash type 'blowfish' (BCrypt) provides the facility to specify the version of the BCrypt algorithm
+
+.. code-block:: jinja
+
+    {{ 'secretpassword' | password_hash('blowfish', '1234567890123456789012', ident='2b') }}
+    # => "$2b$12$123456789012345678901uuJ4qFdej6xnWjOQT.FStqfdoY8dYUPC"
+
+.. note::
+    The parameter is only available for `blowfish (BCrypt) <https://passlib.readthedocs.io/en/stable/lib/passlib.hash.bcrypt.html#passlib.hash.bcrypt>`_.
+    Other hash types will simply ignore this parameter.
+    Valid values for this parameter are: ['2', '2a', '2y', '2b']
+
+.. versionadded:: 2.12
 
 .. _other_useful_filters:
 
@@ -1662,11 +1676,11 @@ To concatenate a list into a string::
 
     {{ list | join(" ") }}
 
-To split a sting into a list::
-
-.. versionadded:: 2.11
+To split a string into a list::
 
     {{ csv_string | split(",") }}
+    
+.. versionadded:: 2.11
 
 To work with Base64 encoded strings::
 
@@ -1697,7 +1711,7 @@ To create a namespaced UUIDv5 using the default Ansible namespace '361E6D51-FAEC
 
 .. versionadded:: 1.9
 
-To make use of one attribute from each item in a list of complex variables, use the :func:`Jinja2 map filter <jinja2:map>`::
+To make use of one attribute from each item in a list of complex variables, use the :func:`Jinja2 map filter <jinja2:jinja-filters.map>`::
 
     # get a comma-separated list of the mount points (for example, "/,/mnt/stuff") on a host
     {{ ansible_mounts | map(attribute='mount') | join(',') }}
@@ -1793,5 +1807,5 @@ This can then be used to reference hashes in Pod specifications::
        Tips and tricks for playbooks
    `User Mailing List <https://groups.google.com/group/ansible-devel>`_
        Have a question?  Stop by the google group!
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

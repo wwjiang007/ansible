@@ -26,18 +26,18 @@ Bootstrapping BSD
 
 Ansible is agentless by default, however, it requires Python on managed nodes. Only the :ref:`raw <raw_module>` module will operate without Python. Although this module can be used to bootstrap Ansible and install Python on BSD variants (see below), it is very limited and the use of Python is required to make full use of Ansible's features.
 
-The following example installs Python 2.7 which includes the json library required for full functionality of Ansible.
+The following example installs Python which includes the json library required for full functionality of Ansible.
 On your control machine you can execute the following for most versions of FreeBSD:
 
 .. code-block:: bash
 
-    ansible -m raw -a "pkg install -y python27" mybsdhost1
+    ansible -m raw -a "pkg install -y python" mybsdhost1
 
 Or for OpenBSD:
 
 .. code-block:: bash
 
-    ansible -m raw -a "pkg_add python%3.7"
+    ansible -m raw -a "pkg_add python%3.8"
 
 Once this is done you can now use other Ansible modules apart from the ``raw`` module.
 
@@ -54,9 +54,9 @@ To support a variety of Unix-like operating systems and distributions, Ansible c
 .. code-block:: text
 
     [freebsd:vars]
-    ansible_python_interpreter=/usr/local/bin/python2.7
+    ansible_python_interpreter=/usr/local/bin/python
     [openbsd:vars]
-    ansible_python_interpreter=/usr/local/bin/python3.7
+    ansible_python_interpreter=/usr/local/bin/python3.8
 
 If you use additional plugins beyond those bundled with Ansible, you can set similar variables for ``bash``, ``perl`` or ``ruby``, depending on how the plugin is written. For example:
 
@@ -102,5 +102,5 @@ Please feel free to report any issues or incompatibilities you discover with BSD
        How to write modules
    `Mailing List <https://groups.google.com/group/ansible-project>`_
        Questions? Help? Ideas?  Stop by the list on Google Groups
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

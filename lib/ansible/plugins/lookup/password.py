@@ -33,6 +33,14 @@ DOCUMENTATION = """
            - Note that the password is always stored as plain text, only the returning password is encrypted.
            - Encrypt also forces saving the salt value for idempotence.
            - Note that before 2.6 this option was incorrectly labeled as a boolean for a long time.
+      ident:
+        description:
+          - Specify version of Bcrypt algorithm to be used while using C(encrypt) as C(bcrypt).
+          - The parameter is only available for C(bcrypt) - U(https://passlib.readthedocs.io/en/stable/lib/passlib.hash.bcrypt.html#passlib.hash.bcrypt).
+          - Other hash types will simply ignore this parameter.
+          - 'Valid values for this parameter are: C(2), C(2a), C(2y), C(2b).'
+        type: string
+        version_added: "2.12"
       chars:
         version_added: "1.4"
         description:
@@ -49,6 +57,13 @@ DOCUMENTATION = """
         description: The length of the generated password.
         default: 20
         type: integer
+      seed:
+        version_added: "2.12"
+        description:
+          - A seed to initialize the random number generator.
+          - Identical seeds will yield identical passwords.
+          - Use this for random-but-idempotent password generation.
+        type: str
     notes:
       - A great alternative to the password lookup plugin,
         if you don't need to generate random passwords on a per-host basis,
@@ -92,6 +107,10 @@ EXAMPLES = """
 - name: create lowercase 8 character name for Kubernetes pod name
   set_fact:
     random_pod_name: "web-{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=8') }}"
+
+- name: create random but idempotent password
+  set_fact:
+    password: "{{ lookup('password', '/dev/null', seed=inventory_hostname) }}"
 """
 
 RETURN = """
@@ -117,7 +136,7 @@ from ansible.utils.path import makedirs_safe
 
 
 DEFAULT_LENGTH = 20
-VALID_PARAMS = frozenset(('length', 'encrypt', 'chars'))
+VALID_PARAMS = frozenset(('length', 'encrypt', 'chars', 'ident', 'seed'))
 
 
 def _parse_parameters(term):
@@ -155,6 +174,8 @@ def _parse_parameters(term):
     # Set defaults
     params['length'] = int(params.get('length', DEFAULT_LENGTH))
     params['encrypt'] = params.get('encrypt', None)
+    params['ident'] = params.get('ident', None)
+    params['seed'] = params.get('seed', None)
 
     params['chars'] = params.get('chars', None)
     if params['chars']:
@@ -241,13 +262,16 @@ def _parse_content(content):
     return password, salt
 
 
-def _format_content(password, salt, encrypt=None):
+def _format_content(password, salt, encrypt=None, ident=None):
     """Format the password and salt for saving
     :arg password: the plaintext password to save
     :arg salt: the salt to use when encrypting a password
     :arg encrypt: Which method the user requests that this password is encrypted.
         Note that the password is saved in clear.  Encrypt just tells us if we
         must save the salt value for idempotence.  Defaults to None.
+    :arg ident: Which version of BCrypt algorithm to be used.
+        Valid only if value of encrypt is bcrypt.
+        Defaults to None.
     :returns: a text string containing the formatted information
 
     .. warning:: Passwords are saved in clear.  This is because the playbooks
@@ -260,6 +284,8 @@ def _format_content(password, salt, encrypt=None):
     if not salt:
         raise AnsibleAssertionError('_format_content was called with encryption requested but no salt value')
 
+    if ident:
+        return u'%s salt=%s ident=%s' % (password, salt, ident)
     return u'%s salt=%s' % (password, salt)
 
 
@@ -324,7 +350,7 @@ class LookupModule(LookupBase):
             content = _read_password_file(b_path)
 
             if content is None or b_path == to_bytes('/dev/null'):
-                plaintext_password = random_password(params['length'], chars)
+                plaintext_password = random_password(params['length'], chars, params['seed'])
                 salt = None
                 changed = True
             else:
@@ -338,8 +364,16 @@ class LookupModule(LookupBase):
                 except KeyError:
                     salt = random_salt()
 
+            ident = params['ident']
+            if encrypt and not ident:
+                changed = True
+                try:
+                    ident = BaseHash.algorithms[encrypt].implicit_ident
+                except KeyError:
+                    ident = None
+
             if changed and b_path != to_bytes('/dev/null'):
-                content = _format_content(plaintext_password, salt, encrypt=encrypt)
+                content = _format_content(plaintext_password, salt, encrypt=encrypt, ident=ident)
                 _write_password_file(b_path, content)
 
             if first_process:
@@ -347,7 +381,7 @@ class LookupModule(LookupBase):
                 _release_lock(lockfile)
 
             if encrypt:
-                password = do_encrypt(plaintext_password, encrypt, salt=salt)
+                password = do_encrypt(plaintext_password, encrypt, salt=salt, ident=ident)
                 ret.append(password)
             else:
                 ret.append(plaintext_password)

@@ -34,7 +34,7 @@ from io import BytesIO
 
 from ansible.release import __version__, __author__
 from ansible import constants as C
-from ansible.errors import AnsibleError, AnsiblePluginRemovedError
+from ansible.errors import AnsibleError
 from ansible.executor.interpreter_discovery import InterpreterDiscoveryRequiredError
 from ansible.executor.powershell import module_manifest as ps_manifest
 from ansible.module_utils.common.json import AnsibleJSONEncoder
@@ -1115,7 +1115,6 @@ def _find_module_utils(module_name, b_module_data, module_path, module_args, tas
         return b_module_data, module_style, shebang
 
     output = BytesIO()
-    py_module_names = set()
 
     try:
         remote_module_fqn = _get_ansible_module_fqn(module_path)
@@ -1185,10 +1184,19 @@ def _find_module_utils(module_name, b_module_data, module_path, module_args, tas
                     # Write the assembled module to a temp file (write to temp
                     # so that no one looking for the file reads a partially
                     # written file)
+                    #
+                    # FIXME: Once split controller/remote is merged, this can be simplified to
+                    #        os.makedirs(lookup_path, exist_ok=True)
                     if not os.path.exists(lookup_path):
-                        # Note -- if we have a global function to setup, that would
-                        # be a better place to run this
-                        os.makedirs(lookup_path)
+                        try:
+                            # Note -- if we have a global function to setup, that would
+                            # be a better place to run this
+                            os.makedirs(lookup_path)
+                        except OSError:
+                            # Multiple processes tried to create the directory. If it still does not
+                            # exist, raise the original exception.
+                            if not os.path.exists(lookup_path):
+                                raise
                     display.debug('ANSIBALLZ: Writing module')
                     with open(cached_module_filename + '-part', 'wb') as f:
                         f.write(zipdata)
@@ -1418,9 +1426,14 @@ def get_action_args_with_defaults(action, args, defaults, templar, redirected_na
                     tmp_args.update((module_defaults.get('group/%s' % group_name) or {}).copy())
 
         # handle specific action defaults
-        for action in redirected_names:
-            if action in module_defaults:
-                tmp_args.update(module_defaults[action].copy())
+        for redirected_action in redirected_names:
+            legacy = None
+            if redirected_action.startswith('ansible.legacy.') and action == redirected_action:
+                legacy = redirected_action.split('ansible.legacy.')[-1]
+            if legacy and legacy in module_defaults:
+                tmp_args.update(module_defaults[legacy].copy())
+            if redirected_action in module_defaults:
+                tmp_args.update(module_defaults[redirected_action].copy())
 
     # direct args override all
     tmp_args.update(args)

@@ -21,3 +21,25 @@ ANSIBLE_CONFIG=inline_comment_ansible.cfg ansible-config dump --only-changed | g
 
 # test the config option validation
 ansible-playbook validation.yml "$@"
+
+# test types from config (just lists for now)
+ANSIBLE_CONFIG=type_munging.cfg ansible-playbook types.yml "$@"
+
+cleanup() {
+	rm -f files/*.new.*
+}
+
+trap 'cleanup' EXIT
+
+diff_failure() {
+    if [[ $INIT = 0 ]]; then
+        echo "FAILURE...diff mismatch!"
+        exit 1
+    fi
+}
+# check a-c init per format
+for format in "vars" "ini" "env"
+do
+	ANSIBLE_LOOKUP_PLUGINS=./ ansible-config init types -t lookup -f "${format}" > "files/types.new.${format}"
+	diff -u "files/types.${format}" "files/types.new.${format}"|| diff_failure
+done

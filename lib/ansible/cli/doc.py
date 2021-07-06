@@ -47,6 +47,7 @@ display = Display()
 TARGET_OPTIONS = C.DOCUMENTABLE_PLUGINS + ('role', 'keyword',)
 PB_OBJECTS = ['Play', 'Role', 'Block', 'Task']
 PB_LOADED = {}
+SNIPPETS = ['inventory', 'lookup', 'module']
 
 
 def jdump(text):
@@ -78,15 +79,46 @@ class RoleMixin(object):
     Note: The methods for actual display of role data are not present here.
     """
 
-    ROLE_ARGSPEC_FILE = 'main.yml'
+    # Potential locations of the role arg spec file in the meta subdir, with main.yml
+    # having the lowest priority.
+    ROLE_ARGSPEC_FILES = ['argument_specs' + e for e in C.YAML_FILENAME_EXTENSIONS] + ["main" + e for e in C.YAML_FILENAME_EXTENSIONS]
 
     def _load_argspec(self, role_name, collection_path=None, role_path=None):
+        """Load the role argument spec data from the source file.
+
+        :param str role_name: The name of the role for which we want the argspec data.
+        :param str collection_path: Path to the collection containing the role. This
+            will be None for standard roles.
+        :param str role_path: Path to the standard role. This will be None for
+            collection roles.
+
+        We support two files containing the role arg spec data: either meta/main.yml
+        or meta/argument_spec.yml. The argument_spec.yml file will take precedence
+        over the meta/main.yml file, if it exists. Data is NOT combined between the
+        two files.
+
+        :returns: A dict of all data underneath the ``argument_specs`` top-level YAML
+            key in the argspec data file. Empty dict is returned if there is no data.
+        """
+
         if collection_path:
-            path = os.path.join(collection_path, 'roles', role_name, 'meta', self.ROLE_ARGSPEC_FILE)
+            meta_path = os.path.join(collection_path, 'roles', role_name, 'meta')
         elif role_path:
-            path = os.path.join(role_path, 'meta', self.ROLE_ARGSPEC_FILE)
+            meta_path = os.path.join(role_path, 'meta')
         else:
             raise AnsibleError("A path is required to load argument specs for role '%s'" % role_name)
+
+        path = None
+
+        # Check all potential spec files
+        for specfile in self.ROLE_ARGSPEC_FILES:
+            full_path = os.path.join(meta_path, specfile)
+            if os.path.exists(full_path):
+                path = full_path
+                break
+
+        if path is None:
+            return {}
 
         try:
             with open(path, 'r') as f:
@@ -110,18 +142,25 @@ class RoleMixin(object):
         """
         found = set()
         found_names = set()
+
         for path in role_paths:
             if not os.path.isdir(path):
                 continue
-            # Check each subdir for a meta/main.yml file
+
+            # Check each subdir for an argument spec file
             for entry in os.listdir(path):
                 role_path = os.path.join(path, entry)
-                full_path = os.path.join(role_path, 'meta', self.ROLE_ARGSPEC_FILE)
-                if os.path.exists(full_path):
-                    if name_filters is None or entry in name_filters:
-                        if entry not in found_names:
-                            found.add((entry, role_path))
-                        found_names.add(entry)
+
+                # Check all potential spec files
+                for specfile in self.ROLE_ARGSPEC_FILES:
+                    full_path = os.path.join(role_path, 'meta', specfile)
+                    if os.path.exists(full_path):
+                        if name_filters is None or entry in name_filters:
+                            if entry not in found_names:
+                                found.add((entry, role_path))
+                            found_names.add(entry)
+                        # select first-found
+                        break
         return found
 
     def _find_all_collection_roles(self, name_filters=None, collection_filter=None):
@@ -147,19 +186,23 @@ class RoleMixin(object):
             roles_dir = os.path.join(path, 'roles')
             if os.path.exists(roles_dir):
                 for entry in os.listdir(roles_dir):
-                    full_path = os.path.join(roles_dir, entry, 'meta', self.ROLE_ARGSPEC_FILE)
-                    if os.path.exists(full_path):
-                        if name_filters is None:
-                            found.add((entry, collname, path))
-                        else:
-                            # Name filters might contain a collection FQCN or not.
-                            for fqcn in name_filters:
-                                if len(fqcn.split('.')) == 3:
-                                    (ns, col, role) = fqcn.split('.')
-                                    if '.'.join([ns, col]) == collname and entry == role:
+
+                    # Check all potential spec files
+                    for specfile in self.ROLE_ARGSPEC_FILES:
+                        full_path = os.path.join(roles_dir, entry, 'meta', specfile)
+                        if os.path.exists(full_path):
+                            if name_filters is None:
+                                found.add((entry, collname, path))
+                            else:
+                                # Name filters might contain a collection FQCN or not.
+                                for fqcn in name_filters:
+                                    if len(fqcn.split('.')) == 3:
+                                        (ns, col, role) = fqcn.split('.')
+                                        if '.'.join([ns, col]) == collname and entry == role:
+                                            found.add((entry, collname, path))
+                                    elif fqcn == entry:
                                         found.add((entry, collname, path))
-                                elif fqcn == entry:
-                                    found.add((entry, collname, path))
+                            break
         return found
 
     def _build_summary(self, role, collection, argspec):
@@ -312,10 +355,10 @@ class DocCLI(CLI, RoleMixin):
     _RULER = re.compile(r"\bHORIZONTALLINE\b")
 
     # rst specific
-    _REFTAG = re.compile(r":ref:")
-    _TERM = re.compile(r":term:")
-    _NOTES = re.compile(r".. note:")
-    _SEEALSO = re.compile(r"^\s*.. seealso:.*$", re.MULTILINE)
+    _RST_NOTE = re.compile(r".. note::")
+    _RST_SEEALSO = re.compile(r".. seealso::")
+    _RST_ROLES = re.compile(r":\w+?:`")
+    _RST_DIRECTIVES = re.compile(r".. \w+?::")
 
     def __init__(self, args):
 
@@ -325,17 +368,19 @@ class DocCLI(CLI, RoleMixin):
     @classmethod
     def tty_ify(cls, text):
 
+        # general formatting
         t = cls._ITALIC.sub(r"`\1'", text)    # I(word) => `word'
         t = cls._BOLD.sub(r"*\1*", t)         # B(word) => *word*
         t = cls._MODULE.sub("[" + r"\1" + "]", t)       # M(word) => [word]
-        t = cls._REF.sub(r"\1", t)                      # R(word, sphinx-ref) => word
-        t = cls._CONST.sub("`" + r"\1" + "'", t)        # C(word) => `word'
+        t = cls._REF.sub(r"\1", t)            # R(word, sphinx-ref) => word
+        t = cls._CONST.sub(r"`\1'", t)        # C(word) => `word'
         t = cls._RULER.sub("\n{0}\n".format("-" * 13), t)   # HORIZONTALLINE => -------
 
-        t = cls._REFTAG.sub(r"", t)  # remove rst :ref:
-        t = cls._TERM.sub(r"", t)  # remove rst :term:
-        t = cls._NOTES.sub(r" Note:", t)  # nicer note
-        t = cls._SEEALSO.sub(r"", t)  # remove seealso
+        # remove rst
+        t = cls._RST_SEEALSO.sub(r"See website for:", t)   # seealso is special and need to break
+        t = cls._RST_NOTE.sub(r"Note:", t)                 # .. note:: to note:
+        t = cls._RST_ROLES.sub(r"website for `", t)        # remove :ref: and other tags
+        t = cls._RST_DIRECTIVES.sub(r"", t)                # remove .. stuff:: in general
 
         # handle docsite refs
         # U(word) => word
@@ -356,32 +401,42 @@ class DocCLI(CLI, RoleMixin):
         opt_help.add_module_options(self.parser)
         opt_help.add_basedir_options(self.parser)
 
+        # targets
         self.parser.add_argument('args', nargs='*', help='Plugin', metavar='plugin')
 
         self.parser.add_argument("-t", "--type", action="store", default='module', dest='type',
                                  help='Choose which plugin type (defaults to "module"). '
                                       'Available plugin types are : {0}'.format(TARGET_OPTIONS),
                                  choices=TARGET_OPTIONS)
+
+        # formatting
         self.parser.add_argument("-j", "--json", action="store_true", default=False, dest='json_format',
                                  help='Change output into json format.')
 
+        # TODO: warn if not used with -t roles
         # role-specific options
         self.parser.add_argument("-r", "--roles-path", dest='roles_path', default=C.DEFAULT_ROLES_PATH,
                                  type=opt_help.unfrack_path(pathsep=True),
                                  action=opt_help.PrependListAction,
                                  help='The path to the directory containing your roles.')
 
+        # modifiers
         exclusive = self.parser.add_mutually_exclusive_group()
+        # TODO: warn if not used with -t roles
+        exclusive.add_argument("-e", "--entry-point", dest="entry_point",
+                               help="Select the entry point for role(s).")
+
+        # TODO: warn with --json as it is incompatible
+        exclusive.add_argument("-s", "--snippet", action="store_true", default=False, dest='show_snippet',
+                               help='Show playbook snippet for these plugin types: %s' % ', '.join(SNIPPETS))
+
+        # TODO: warn when arg/plugin is passed
         exclusive.add_argument("-F", "--list_files", action="store_true", default=False, dest="list_files",
                                help='Show plugin names and their source files without summaries (implies --list). %s' % coll_filter)
         exclusive.add_argument("-l", "--list", action="store_true", default=False, dest='list_dir',
                                help='List available plugins. %s' % coll_filter)
-        exclusive.add_argument("-s", "--snippet", action="store_true", default=False, dest='show_snippet',
-                               help='Show playbook snippet for specified plugin(s)')
         exclusive.add_argument("--metadata-dump", action="store_true", default=False, dest='dump',
                                help='**For internal testing only** Dump json metadata for all plugins.')
-        exclusive.add_argument("-e", "--entry-point", dest="entry_point",
-                               help="Select the entry point for role(s).")
 
     def post_process_args(self, options):
         options = super(DocCLI, self).post_process_args(options)
@@ -522,7 +577,7 @@ class DocCLI(CLI, RoleMixin):
                 data[keyword] = kdata
 
             except KeyError as e:
-                display.warning("Skipping Invalid keyword '%s' specified: %s" % (keyword, to_native(e)))
+                display.warning("Skipping Invalid keyword '%s' specified: %s" % (keyword, to_text(e)))
 
         return data
 
@@ -661,9 +716,23 @@ class DocCLI(CLI, RoleMixin):
             if plugin_type in C.DOCUMENTABLE_PLUGINS:
                 if listing and docs:
                     self.display_plugin_list(docs)
+                elif context.CLIARGS['show_snippet']:
+                    if plugin_type not in SNIPPETS:
+                        raise AnsibleError('Snippets are only available for the following plugin'
+                                           ' types: %s' % ', '.join(SNIPPETS))
+
+                    for plugin, doc_data in docs.items():
+                        try:
+                            textret = DocCLI.format_snippet(plugin, plugin_type, doc_data['doc'])
+                        except ValueError as e:
+                            display.warning("Unable to construct a snippet for"
+                                            " '{0}': {1}".format(plugin, to_text(e)))
+                        else:
+                            text.append(textret)
                 else:
                     # Some changes to how plain text docs are formatted
                     for plugin, doc_data in docs.items():
+
                         textret = DocCLI.format_plugin_doc(plugin, plugin_type,
                                                            doc_data['doc'], doc_data['examples'],
                                                            doc_data['return'], doc_data['metadata'])
@@ -671,11 +740,13 @@ class DocCLI(CLI, RoleMixin):
                             text.append(textret)
                         else:
                             display.warning("No valid documentation was retrieved from '%s'" % plugin)
+
             elif plugin_type == 'role':
                 if context.CLIARGS['list_dir'] and docs:
                     self._display_available_roles(docs)
                 elif docs:
                     self._display_role_doc(docs)
+
             elif docs:
                 text = DocCLI._dump_yaml(docs, '')
 
@@ -741,7 +812,6 @@ class DocCLI(CLI, RoleMixin):
         result = loader.find_plugin_with_context(plugin, mod_type='.py', ignore_deprecated=True, check_aliases=True)
         if not result.resolved:
             raise PluginNotFound('%s was not found in %s' % (plugin, search_paths))
-        plugin_name = result.plugin_resolved_name
         filename = result.plugin_resolved_path
         collection_name = result.plugin_resolved_collection
 
@@ -771,6 +841,26 @@ class DocCLI(CLI, RoleMixin):
         return {'doc': doc, 'examples': plainexamples, 'return': returndocs, 'metadata': metadata}
 
     @staticmethod
+    def format_snippet(plugin, plugin_type, doc):
+        ''' return heavily commented plugin use to insert into play '''
+        if plugin_type == 'inventory' and doc.get('options', {}).get('plugin'):
+            # these do not take a yaml config that we can write a snippet for
+            raise ValueError('The {0} inventory plugin does not take YAML type config source'
+                             ' that can be used with the "auto" plugin so a snippet cannot be'
+                             ' created.'.format(plugin))
+
+        text = []
+
+        if plugin_type == 'lookup':
+            text = _do_lookup_snippet(doc)
+
+        elif 'options' in doc:
+            text = _do_yaml_snippet(doc)
+
+        text.append('')
+        return "\n".join(text)
+
+    @staticmethod
     def format_plugin_doc(plugin, plugin_type, doc, plainexamples, returndocs, metadata):
         collection_name = doc['collection']
 
@@ -785,14 +875,11 @@ class DocCLI(CLI, RoleMixin):
         doc['returndocs'] = returndocs
         doc['metadata'] = metadata
 
-        if context.CLIARGS['show_snippet'] and plugin_type == 'module':
-            text = DocCLI.get_snippet_text(doc)
-        else:
-            try:
-                text = DocCLI.get_man_text(doc, collection_name, plugin_type)
-            except Exception as e:
-                display.vvv(traceback.format_exc())
-                raise AnsibleError("Unable to retrieve documentation from '%s' due to: %s" % (plugin, to_native(e)), orig_exc=e)
+        try:
+            text = DocCLI.get_man_text(doc, collection_name, plugin_type)
+        except Exception as e:
+            display.vvv(traceback.format_exc())
+            raise AnsibleError("Unable to retrieve documentation from '%s' due to: %s" % (plugin, to_native(e)), orig_exc=e)
 
         return text
 
@@ -904,37 +991,19 @@ class DocCLI(CLI, RoleMixin):
         return os.pathsep.join(ret)
 
     @staticmethod
-    def get_snippet_text(doc):
-
-        text = []
-        desc = DocCLI.tty_ify(doc['short_description'])
-        text.append("- name: %s" % (desc))
-        text.append("  %s:" % (doc['module']))
-        pad = 31
-        subdent = " " * pad
-        limit = display.columns - pad
-
-        for o in sorted(doc['options'].keys()):
-            opt = doc['options'][o]
-            if isinstance(opt['description'], string_types):
-                desc = DocCLI.tty_ify(opt['description'])
-            else:
-                desc = DocCLI.tty_ify(" ".join(opt['description']))
-
-            required = opt.get('required', False)
-            if not isinstance(required, bool):
-                raise("Incorrect value for 'Required', a boolean is needed.: %s" % required)
-            if required:
-                desc = "(required) %s" % desc
-            o = '%s:' % o
-            text.append("      %-20s   # %s" % (o, textwrap.fill(desc, limit, subsequent_indent=subdent)))
-        text.append('')
-
-        return "\n".join(text)
-
-    @staticmethod
     def _dump_yaml(struct, indent):
         return DocCLI.tty_ify('\n'.join([indent + line for line in yaml.dump(struct, default_flow_style=False, Dumper=AnsibleDumper).split('\n')]))
+
+    @staticmethod
+    def _format_version_added(version_added, version_added_collection=None):
+        if version_added_collection == 'ansible.builtin':
+            version_added_collection = 'ansible-core'
+            # In ansible-core, version_added can be 'historical'
+            if version_added == 'historical':
+                return 'historical'
+        if version_added_collection:
+            version_added = '%s of %s' % (version_added, version_added_collection)
+        return 'version %s' % (version_added, )
 
     @staticmethod
     def add_fields(text, fields, limit, opt_indent, return_values=False, base_indent=''):
@@ -999,8 +1068,20 @@ class DocCLI(CLI, RoleMixin):
                             if ignore in item:
                                 del item[ignore]
 
+            if 'cli' in opt and opt['cli']:
+                conf['cli'] = []
+                for cli in opt['cli']:
+                    if 'option' not in cli:
+                        conf['cli'].append({'name': cli['name'], 'option': '--%s' % cli['name'].replace('_', '-')})
+                    else:
+                        conf['cli'].append(cli)
+                del opt['cli']
+
             if conf:
                 text.append(DocCLI._dump_yaml({'set_via': conf}, opt_indent))
+
+            version_added = opt.pop('version_added', None)
+            version_added_collection = opt.pop('version_added_collection', None)
 
             for k in sorted(opt):
                 if k.startswith('_'):
@@ -1014,6 +1095,9 @@ class DocCLI(CLI, RoleMixin):
                     text.append(DocCLI.tty_ify('%s%s: %s' % (opt_indent, k, ', '.join(opt[k]))))
                 else:
                     text.append(DocCLI._dump_yaml({k: opt[k]}, opt_indent))
+
+            if version_added:
+                text.append("%sadded in: %s\n" % (opt_indent, DocCLI._format_version_added(version_added, version_added_collection)))
 
             for subkey, subdata in suboptions:
                 text.append('')
@@ -1107,6 +1191,11 @@ class DocCLI(CLI, RoleMixin):
 
         text.append("%s\n" % textwrap.fill(DocCLI.tty_ify(desc), limit, initial_indent=opt_indent,
                                            subsequent_indent=opt_indent))
+
+        if 'version_added' in doc:
+            version_added = doc.pop('version_added')
+            version_added_collection = doc.pop('version_added_collection', None)
+            text.append("ADDED IN: %s\n" % DocCLI._format_version_added(version_added, version_added_collection))
 
         if doc.get('deprecated', False):
             text.append("DEPRECATED: \n")
@@ -1207,3 +1296,86 @@ class DocCLI(CLI, RoleMixin):
             DocCLI.add_fields(text, doc.pop('returndocs'), limit, opt_indent, return_values=True)
 
         return "\n".join(text)
+
+
+def _do_yaml_snippet(doc):
+    text = []
+
+    mdesc = DocCLI.tty_ify(doc['short_description'])
+    module = doc.get('module')
+
+    if module:
+        # this is actually a usable task!
+        text.append("- name: %s" % (mdesc))
+        text.append("  %s:" % (module))
+    else:
+        # just a comment, hopefully useful yaml file
+        text.append("# %s:" % doc.get('plugin', doc.get('name')))
+
+    pad = 29
+    subdent = '# '.rjust(pad + 2)
+    limit = display.columns - pad
+
+    for o in sorted(doc['options'].keys()):
+        opt = doc['options'][o]
+        if isinstance(opt['description'], string_types):
+            desc = DocCLI.tty_ify(opt['description'])
+        else:
+            desc = DocCLI.tty_ify(" ".join(opt['description']))
+
+        required = opt.get('required', False)
+        if not isinstance(required, bool):
+            raise ValueError("Incorrect value for 'Required', a boolean is needed: %s" % required)
+
+        o = '%s:' % o
+        if module:
+            if required:
+                desc = "(required) %s" % desc
+            text.append("      %-20s   # %s" % (o, textwrap.fill(desc, limit, subsequent_indent=subdent)))
+        else:
+            if required:
+                default = '(required)'
+            else:
+                default = opt.get('default', 'None')
+
+            text.append("%s %-9s # %s" % (o, default, textwrap.fill(desc, limit, subsequent_indent=subdent, max_lines=3)))
+
+    return text
+
+
+def _do_lookup_snippet(doc):
+    text = []
+    snippet = "lookup('%s', " % doc.get('plugin', doc.get('name'))
+    comment = []
+
+    for o in sorted(doc['options'].keys()):
+
+        opt = doc['options'][o]
+        comment.append('# %s(%s): %s' % (o, opt.get('type', 'string'), opt.get('description', '')))
+        if o in ('_terms', '_raw', '_list'):
+            # these are 'list of arguments'
+            snippet += '< %s >' % (o)
+            continue
+
+        required = opt.get('required', False)
+        if not isinstance(required, bool):
+            raise ValueError("Incorrect value for 'Required', a boolean is needed: %s" % required)
+
+        if required:
+            default = '<REQUIRED>'
+        else:
+            default = opt.get('default', 'None')
+
+        if opt.get('type') in ('string', 'str'):
+            snippet += ", %s='%s'" % (o, default)
+        else:
+            snippet += ', %s=%s' % (o, default)
+
+    snippet += ")"
+
+    if comment:
+        text.extend(comment)
+        text.append('')
+    text.append(snippet)
+
+    return text

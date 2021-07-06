@@ -56,7 +56,9 @@ DOCUMENTATION = '''
               - name: ansible_ssh_pass
               - name: ansible_ssh_password
       sshpass_prompt:
-          description: Password prompt that sshpass should search for. Supported by sshpass 1.06 and up.
+          description:
+              - Password prompt that sshpass should search for. Supported by sshpass 1.06 and up.
+              - Defaults to ``Enter PIN for`` when pkcs11_provider is set.
           default: ''
           ini:
               - section: 'ssh_connection'
@@ -77,8 +79,6 @@ DOCUMENTATION = '''
           vars:
               - name: ansible_ssh_args
                 version_added: '2.7'
-          cli:
-              - name: ssh_args
       ssh_common_args:
           description: Common extra args for all ssh CLI tools
           ini:
@@ -232,6 +232,7 @@ DOCUMENTATION = '''
             - name: ansible_ssh_private_key_file
           cli:
             - name: private_key_file
+              option: '--private-key'
 
       control_path:
         description:
@@ -271,7 +272,6 @@ DOCUMENTATION = '''
           - name: ansible_sftp_batch_mode
             version_added: '2.7'
       ssh_transfer_method:
-        default: smart
         description:
             - "Preferred method to use when transferring files over ssh"
             - Setting to 'smart' (default) will try them in order, until one succeeds or they all fail
@@ -280,6 +280,9 @@ DOCUMENTATION = '''
         env: [{name: ANSIBLE_SSH_TRANSFER_METHOD}]
         ini:
             - {key: transfer_method, section: ssh_connection}
+        vars:
+            - name: ansible_ssh_transfer_method
+              version_added: '2.12'
       scp_if_ssh:
         default: smart
         description:
@@ -324,6 +327,17 @@ DOCUMENTATION = '''
         cli:
           - name: timeout
         type: integer
+      pkcs11_provider:
+        version_added: '2.12'
+        default: ""
+        description:
+          - "PKCS11 SmartCard provider such as opensc, example: /usr/local/lib/opensc-pkcs11.so"
+          - Requires sshpass version 1.06+, sshpass must support the -P option
+        env: [{name: ANSIBLE_PKCS11_PROVIDER}]
+        ini:
+          - {key: pkcs11_provider, section: ssh_connection}
+        vars:
+          - name: ansible_ssh_pkcs11_provider
 '''
 
 import errno
@@ -601,7 +615,7 @@ class Connection(ConnectionBase):
             were added.  It will be displayed with a high enough verbosity.
         .. note:: This function does its work via side-effect.  The b_command list has the new arguments appended.
         """
-        display.vvvvv(u'SSH: %s: (%s)' % (explanation, ')('.join(to_text(a) for a in b_args)), host=self._play_context.remote_addr)
+        display.vvvvv(u'SSH: %s: (%s)' % (explanation, ')('.join(to_text(a) for a in b_args)), host=self.host)
         b_command += b_args
 
     def _build_command(self, binary, subsystem, *other_args):
@@ -624,15 +638,21 @@ class Connection(ConnectionBase):
 
         # If we want to use password authentication, we have to set up a pipe to
         # write the password to sshpass.
-
-        if conn_password:
+        pkcs11_provider = self.get_option("pkcs11_provider")
+        if conn_password or pkcs11_provider:
             if not self._sshpass_available():
-                raise AnsibleError("to use the 'ssh' connection type with passwords, you must install the sshpass program")
+                raise AnsibleError("to use the 'ssh' connection type with passwords or pkcs11_provider, you must install the sshpass program")
+            if not conn_password and pkcs11_provider:
+                raise AnsibleError("to use pkcs11_provider you must specify a password/pin")
 
             self.sshpass_pipe = os.pipe()
             b_command += [b'sshpass', b'-d' + to_bytes(self.sshpass_pipe[0], nonstring='simplerepr', errors='surrogate_or_strict')]
 
             password_prompt = self.get_option('sshpass_prompt')
+            if not password_prompt and pkcs11_provider:
+                # Set default password prompt for pkcs11_provider to make it clear its a PIN
+                password_prompt = 'Enter PIN for '
+
             if password_prompt:
                 b_command += [b'-P', to_bytes(password_prompt, errors='surrogate_or_strict')]
 
@@ -641,6 +661,15 @@ class Connection(ConnectionBase):
         #
         # Next, additional arguments based on the configuration.
         #
+
+        # pkcs11 mode allows the use of Smartcards or Yubikey devices
+        if conn_password and pkcs11_provider:
+            self._add_args(b_command,
+                           (b"-o", b"KbdInteractiveAuthentication=no",
+                            b"-o", b"PreferredAuthentications=publickey",
+                            b"-o", b"PasswordAuthentication=no",
+                            b'-o', to_bytes(u'PKCS11Provider=%s' % pkcs11_provider)),
+                           u'Enable pkcs11')
 
         # sftp batch mode allows us to correctly catch failed transfers, but can
         # be disabled if the client side doesn't support the option. However,
@@ -1145,6 +1174,10 @@ class Connection(ConnectionBase):
 
         # Use the transfer_method option if set, otherwise use scp_if_ssh
         ssh_transfer_method = self.get_option('ssh_transfer_method')
+        scp_if_ssh = self.get_option('scp_if_ssh')
+        if ssh_transfer_method is None and scp_if_ssh == 'smart':
+            ssh_transfer_method = 'smart'
+
         if ssh_transfer_method is not None:
             if ssh_transfer_method == 'smart':
                 methods = smart_methods
@@ -1152,7 +1185,6 @@ class Connection(ConnectionBase):
                 methods = [ssh_transfer_method]
         else:
             # since this can be a non-bool now, we need to handle it correctly
-            scp_if_ssh = self.get_option('scp_if_ssh')
             if not isinstance(scp_if_ssh, bool):
                 scp_if_ssh = scp_if_ssh.lower()
                 if scp_if_ssh in BOOLEANS:
@@ -1232,7 +1264,7 @@ class Connection(ConnectionBase):
 
         super(Connection, self).exec_command(cmd, in_data=in_data, sudoable=sudoable)
 
-        display.vvv(u"ESTABLISH SSH CONNECTION FOR USER: {0}".format(self.user), host=self._play_context.remote_addr)
+        display.vvv(u"ESTABLISH SSH CONNECTION FOR USER: {0}".format(self.user), host=self.host)
 
         if getattr(self._shell, "_IS_WINDOWS", False):
             # Become method 'runas' is done in the wrapper that is executed,

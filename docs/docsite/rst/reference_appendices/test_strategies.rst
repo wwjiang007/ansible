@@ -15,7 +15,7 @@ we'll go into some patterns for integrating tests of infrastructure and discuss 
 .. note:: This is a chapter about testing the application you are deploying, not the chapter on how to test Ansible modules during development.  For that content, please hop over to the Development section.
 
 By incorporating a degree of testing into your deployment workflow, there will be fewer surprises when code hits production and, in many cases,
-tests can be leveraged in production to prevent failed updates from migrating across an entire installation.  Since it's push-based, it's
+tests can be used in production to prevent failed updates from migrating across an entire installation.  Since it's push-based, it's
 also very easy to run the steps on the localhost or testing servers. Ansible lets you insert as many checks and balances into your upgrade workflow as you would like to have.
 
 The Right Level of Testing
@@ -73,7 +73,7 @@ Here's an example of using the URI module to make sure a web service returns::
 
    tasks:
 
-     - action: uri url=http://www.example.com return_content=yes
+     - action: uri url=https://www.example.com return_content=yes
        register: webpage
 
      - fail:
@@ -270,5 +270,5 @@ system.
        Delegation, useful for working with load balancers, clouds, and locally executed steps.
    `User Mailing List <https://groups.google.com/group/ansible-project>`_
        Have a question?  Stop by the google group!
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

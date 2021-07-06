@@ -922,20 +922,6 @@ class StrategyBase:
                 raise AnsibleError("included task files must contain a list of tasks")
 
             ti_copy = self._copy_included_file(included_file)
-            # pop tags out of the include args, if they were specified there, and assign
-            # them to the include. If the include already had tags specified, we raise an
-            # error so that users know not to specify them both ways
-            tags = included_file._task.vars.pop('tags', [])
-            if isinstance(tags, string_types):
-                tags = tags.split(',')
-            if len(tags) > 0:
-                if len(included_file._task.tags) > 0:
-                    raise AnsibleParserError("Include tasks should not specify tags in more than one way (both via args and directly on the task). "
-                                             "Mixing tag specify styles is prohibited for whole import hierarchy, not only for single import statement",
-                                             obj=included_file._task._ds)
-                display.deprecated("You should not specify tags in the include parameters. All tags should be specified using the task-level option",
-                                   version='2.12', collection_name='ansible.builtin')
-                included_file._task.tags = tags
 
             block_list = load_list_of_blocks(
                 data,
@@ -1170,11 +1156,23 @@ class StrategyBase:
             else:
                 skipped = True
                 skip_reason += ', not clearing host error state for %s' % target_host.name
+        elif meta_action == 'end_batch':
+            if _evaluate_conditional(target_host):
+                for host in self._inventory.get_hosts(iterator._play.hosts):
+                    if host.name not in self._tqm._unreachable_hosts:
+                        iterator._host_states[host.name].run_state = iterator.ITERATING_COMPLETE
+                msg = "ending batch"
+            else:
+                skipped = True
+                skip_reason += ', continuing current batch'
         elif meta_action == 'end_play':
             if _evaluate_conditional(target_host):
                 for host in self._inventory.get_hosts(iterator._play.hosts):
                     if host.name not in self._tqm._unreachable_hosts:
                         iterator._host_states[host.name].run_state = iterator.ITERATING_COMPLETE
+                        # end_play is used in PlaybookExecutor/TQM to indicate that
+                        # the whole play is supposed to be ended as opposed to just a batch
+                        iterator.end_play = True
                 msg = "ending play"
             else:
                 skipped = True

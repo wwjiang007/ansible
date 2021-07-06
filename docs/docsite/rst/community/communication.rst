@@ -18,8 +18,7 @@ Mailing list information
 Ansible has several mailing lists.  Your first post to the mailing list will be moderated (to reduce spam), so please allow up to a day or so for your first post to appear.
 
 * `Ansible Announce list <https://groups.google.com/forum/#!forum/ansible-announce>`_ is a read-only list that shares information about new releases of Ansible, and also rare infrequent event information, such as announcements about an upcoming AnsibleFest, which is our official conference series. Worth subscribing to!
-* `Ansible AWX List <https://groups.google.com/forum/#!forum/awx-project>`_ is for `Ansible AWX <https://github.com/ansible/awx>`_ 
-* `Ansible Container List <https://groups.google.com/forum/#!forum/ansible-container>`_ is for users and developers of the Ansible Container project.
+* `Ansible AWX List <https://groups.google.com/forum/#!forum/awx-project>`_ is for `Ansible AWX <https://github.com/ansible/awx>`_
 * `Ansible Development List <https://groups.google.com/forum/#!forum/ansible-devel>`_ is for learning how to develop on Ansible, asking about prospective feature design, or discussions about extending ansible or features in progress.
 * `Ansible Lockdown List <https://groups.google.com/forum/#!forum/ansible-lockdown>`_ is for all things related to Ansible Lockdown projects, including DISA STIG automation and CIS Benchmarks.
 * `Ansible Outreach List <https://groups.google.com/forum/#!forum/ansible-outreach>`_ help with promoting Ansible and `Ansible Meetups <https://ansible.meetup.com/>`_
@@ -33,22 +32,22 @@ To subscribe to a group from a non-Google account, you can send an email to the 
 IRC channels
 ============
 
-Ansible has several IRC channels on `Freenode <https://freenode.net/>`_.
+Ansible has several IRC channels on `irc.libera.chat <https://libera.chat/>`_.
 
-Our IRC channels may require you to register your nickname. If you receive an error when you connect, see `Freenode's Nickname Registration guide <https://freenode.net/kb/answer/registration>`_ for instructions.
+Our IRC channels may require you to register your nickname. If you receive an error when you connect, see `libera.chat's Nickname Registration guide <https://libera.chat/guides/registration>`_ for instructions.
 
-To find all ``ansible`` specific channels on a freenode network, use the following command in your IRC client::
+To find all ``ansible`` specific channels on the libera.chat network, use the following command in your IRC client::
 
    /msg alis LIST #ansible* -min 5
 
-as described in `freenode docs <https://freenode.net/kb/answer/findingchannels>`_.
+as described in the `libera.chat docs <https://libera.chat/guides/findingchannels>`_.
 
 General channels
 ----------------
 
 - ``#ansible`` - For general use questions and support.
 - ``#ansible-devel`` - For discussions on developer topics and code related to features or bugs.
-- ``#ansible-community`` - For discussions on community and collections related topics. 
+- ``#ansible-community`` - For discussions on community and collections related topics.
 - ``#ansible-meeting`` - For public community meetings. We will generally announce these on one or more of the above mailing lists. See the `meeting schedule and agenda page <https://github.com/ansible/community/blob/master/meetings/README.md>`_
 
 .. _working_group_list:
@@ -56,7 +55,7 @@ General channels
 Working groups
 --------------
 
-Many of our community `Working Groups <https://github.com/ansible/community/wiki#working-groups>`_ meet on Freenode IRC channels. If you want to get involved in a working group, join the channel where it meets or comment on the agenda.
+Many of our community `Working Groups <https://github.com/ansible/community/wiki#working-groups>`_ meet on libera.chat IRC channels. If you want to get involved in a working group, join the channel where it meets or comment on the agenda.
 
 - `Amazon (AWS) Working Group <https://github.com/ansible/community/wiki/AWS>`_ - ``#ansible-aws``
 - `Ansible Lockdown Working Group <https://github.com/ansible/community/wiki/Lockdown>`_ | `gh/ansible/ansible-lockdown <https://github.com/ansible/ansible-lockdown>`_ - ``#ansible-lockdown``- Security playbooks/roles
@@ -107,10 +106,10 @@ If you have a question about Ansible Automation Platform, visit `Red Hat support
 The Bullhorn
 ============
 
-**The Bullhorn** is our newsletter for the Ansible developer community. 
+**The Bullhorn** is our newsletter for the Ansible developer community.
 If you have any questions or content you would like to share, please reach out to us at the-bullhorn@redhat.com, or directly `contribute/suggest content <https://github.com/ansible/community/issues/546>`_ for upcoming issues.
 
 Read past issues `here <https://github.com/ansible/community/wiki/News>`_.
 
-`Subscribe <http://eepurl.com/gZmiEP>`_ to receive it.
+`Subscribe <https://eepurl.com/gZmiEP>`_ to receive it.
 

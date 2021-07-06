@@ -21,6 +21,9 @@ You can install and use collections through `Ansible Galaxy <https://galaxy.ansi
 Installing collections
 ======================
 
+.. note::
+
+  If you install a collection manually as described in this paragraph, the collection will not be upgraded automatically when you upgrade the ``ansible`` package or ``ansible-core``.
 
 Installing collections with ``ansible-galaxy``
 ----------------------------------------------
@@ -376,5 +379,5 @@ This will have an implied entry in the ``collections:`` keyword of ``my_namespac
        Understand the collections metadata structure.
   `Mailing List <https://groups.google.com/group/ansible-devel>`_
        The development mailing list
-  `irc.freenode.net <http://irc.freenode.net>`_
+  `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

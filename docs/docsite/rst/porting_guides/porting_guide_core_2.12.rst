@@ -25,7 +25,7 @@ No notable changes
 Command Line
 ============
 
-No notable changes
+* ``ansible-vault`` no longer supports ``PyCrypto`` and requires ``cryptography``.
 
 
 Deprecated
@@ -46,12 +46,15 @@ Deprecated
       - include_tasks: provision.yml
         when: not teardown | bool
 
+* The ``_remote_checksum()`` method in ``ActionBase`` is deprecated. Any action plugin using this method should use ``_execute_remote_stat()`` instead.
 
 Modules
 =======
 
 * ``cron`` now requires ``name`` to be specified in all cases.
 * ``cron`` no longer allows a ``reboot`` parameter. Use ``special_time: reboot`` instead.
+* ``hostname`` - On FreeBSD, the ``before`` result will no longer be ``"temporarystub"`` if permanent hostname file does not exist. It will instead be ``""`` (empty string) for consistency with other systems.
+* ``hostname`` - On OpenRC and Solaris based systems, the ``before`` result will no longer be ``"UNKNOWN"`` if the permanent hostname file does not exist. It will instead be ``""`` (empty string) for consistency with other systems.
 
 
 Modules removed

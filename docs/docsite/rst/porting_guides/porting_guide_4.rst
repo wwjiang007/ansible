@@ -132,11 +132,164 @@ Porting custom scripts
 
 No notable changes
 
-Porting Guide for v4.0.0b1
-==========================
+Porting Guide for v4.2.0
+========================
 
 Known Issues
 ------------
+
+dellemc.openmanage
+~~~~~~~~~~~~~~~~~~
+
+- idrac_user - Issue(192043) Module may error out with the message ``unable to perform the import or export operation because there are pending attribute changes or a configuration job is in progress``. Wait for the job to complete and run the task again.
+- ome_smart_fabric_uplink - Issue(186024) ome_smart_fabric_uplink module does not allow the creation of multiple uplinks of the same name even though this is supported by OpenManage Enterprise Modular. If an uplink is created using the same name as an existing uplink, the existing uplink is modified.
+
+Major Changes
+-------------
+
+community.vmware
+~~~~~~~~~~~~~~~~
+
+- vmware_object_custom_attributes_info - added a new module to gather custom attributes of an object (https://github.com/ansible-collections/community.vmware/pull/851).
+
+dellemc.openmanage
+~~~~~~~~~~~~~~~~~~
+
+- idrac_server_config_profile - Added support for exporting and importing Server Configuration Profile through HTTP/HTTPS share.
+- ome_device_group - Added support for adding devices to a group using the IP addresses of the devices and group ID.
+
+fortinet.fortios
+~~~~~~~~~~~~~~~~
+
+- New module fortios_monitor_fact.
+- Support Fortios 7.0.
+- Support Log APIs.
+
+Deprecated Features
+-------------------
+
+- The community.kubernetes collection is being renamed to kubernetes.core. In Ansible 5, community.kubernetes will be replaced by an empty collection which has deprecated redirects for all the current content to kubernetes.core. If you are using FQCNs starting with ``community.kubernetes.``, please update them to ``kubernetes.core.`` now. Note that kubernetes.core has been included in Ansible since Ansible 3.0.0 (https://github.com/ansible-community/community-topics/issues/22).
+
+ansible.windows
+~~~~~~~~~~~~~~~
+
+- win_updates - Deprecated the ``filtered_reason`` return value for each filtered up in favour of ``filtered_reasons``. This has been done to show all the reasons why an update was filtered and not just the first reason.
+- win_updates - Deprecated the ``use_scheduled_task`` option as it is no longer used.
+- win_updates - Deprecated the ``whitelist`` and ``blacklist`` options in favour of ``accept_list`` and ``reject_list`` respectively to conform to the new standards used in Ansible for these types of options.
+
+community.general
+~~~~~~~~~~~~~~~~~
+
+- ali_instance_info - marked removal version of deprecated parameters ``availability_zone`` and ``instance_names`` (https://github.com/ansible-collections/community.general/issues/2429).
+- serverless - deprecating parameter ``functions`` because it was not used in the code (https://github.com/ansible-collections/community.general/pull/2845).
+
+community.hashi_vault
+~~~~~~~~~~~~~~~~~~~~~
+
+- hashi_vault collection - support for Python 2 will be dropped in version ``2.0.0`` of ``community.hashi_vault`` (https://github.com/ansible-collections/community.hashi_vault/issues/81).
+
+Porting Guide for v4.1.0
+========================
+
+Known Issues
+------------
+
+dellemc.openmanage
+~~~~~~~~~~~~~~~~~~
+
+- idrac_user - Issue(192043) Module may error out with the message ``unable to perform the import or export operation because there are pending attribute changes or a configuration job is in progress``. Wait for the job to complete and run the task again.
+- ome_smart_fabric_uplink - Issue(186024) ome_smart_fabric_uplink module does not allow the creation of multiple uplinks of the same name even though this is supported by OpenManage Enterprise Modular. If an uplink is created using the same name as an existing uplink, the existing uplink is modified.
+
+Major Changes
+-------------
+
+cloudscale_ch.cloud
+~~~~~~~~~~~~~~~~~~~
+
+- Add custom_image module
+
+community.postgresql
+~~~~~~~~~~~~~~~~~~~~
+
+- postgresql_query - the default value of the ``as_single_query`` option will be changed to ``yes`` in community.postgresql 2.0.0 (https://github.com/ansible-collections/community.postgresql/issues/85).
+
+dellemc.openmanage
+~~~~~~~~~~~~~~~~~~
+
+- ome_firmware_baseline - Module supports check mode, and allows the modification and deletion of firmware baselines.
+- ome_firmware_catalog - Module supports check mode, and allows the modification and deletion of firmware catalogs.
+
+fortinet.fortios
+~~~~~~~~~~~~~~~~
+
+- Improve ``fortios_configuration_fact`` to use multiple selectors concurrently.
+- Support ``check_mode`` in all cofigurationAPI-based modules.
+- Support filtering for fact gathering modules ``fortios_configuration_fact`` and ``fortios_monitor_fact``.
+- Support moving policy in ``firewall_central_snat_map``.
+- Unify schemas for monitor API.
+
+netbox.netbox
+~~~~~~~~~~~~~
+
+- packages is now a required Python package and gets installed via Ansible 2.10+.
+
+Removed Features
+----------------
+
+ansible.windows
+~~~~~~~~~~~~~~~
+
+- win_reboot - Removed ``shutdown_timeout`` and ``shutdown_timeout_sec`` which has not done anything since Ansible 2.5.
+
+Deprecated Features
+-------------------
+
+ansible.windows
+~~~~~~~~~~~~~~~
+
+- win_reboot - Unreachable hosts can be ignored with ``ignore_errors: True``, this ability will be removed in a future version. Use ``ignore_unreachable: True`` to ignore unreachable hosts instead. - https://github.com/ansible-collections/ansible.windows/issues/62
+
+community.docker
+~~~~~~~~~~~~~~~~
+
+- docker_* modules and plugins, except ``docker_swarm`` connection plugin and ``docker_compose`` and ``docker_stack*` modules - the current default ``localhost`` for ``tls_hostname`` is deprecated. In community.docker 2.0.0 it will be computed from ``docker_host`` instead (https://github.com/ansible-collections/community.docker/pull/134).
+
+community.general
+~~~~~~~~~~~~~~~~~
+
+- All inventory and vault scripts will be removed from community.general in version 4.0.0. If you are referencing them, please update your references to the new `contrib-scripts GitHub repository <https://github.com/ansible-community/contrib-scripts>`_ so your workflow will not break once community.general 4.0.0 is released (https://github.com/ansible-collections/community.general/pull/2697).
+- The nios, nios_next_ip, nios_next_network lookup plugins, the nios documentation fragment, and the nios_host_record, nios_ptr_record, nios_mx_record, nios_fixed_address, nios_zone, nios_member, nios_a_record, nios_aaaa_record, nios_network, nios_dns_view, nios_txt_record, nios_naptr_record, nios_srv_record, nios_cname_record, nios_nsgroup, and nios_network_view module have been deprecated and will be removed from community.general 5.0.0. Please install the `infoblox.nios_modules <https://galaxy.ansible.com/infoblox/nios_modules>`_ collection instead and use its plugins and modules (https://github.com/ansible-collections/community.general/pull/2458).
+- The vendored copy of ``ipaddress`` will be removed in community.general 4.0.0. Please switch to ``ipaddress`` from the Python 3 standard library, or `from pypi <https://pypi.org/project/ipaddress/>`_, if your code relies on the vendored version of ``ipaddress`` (https://github.com/ansible-collections/community.general/pull/2459).
+- linode - parameter ``backupsenabled`` is deprecated and will be removed in community.general 5.0.0 (https://github.com/ansible-collections/community.general/pull/2410).
+- lxd inventory plugin - the plugin will require ``ipaddress`` installed when used with Python 2 from community.general 4.0.0 on. ``ipaddress`` is part of the Python 3 standard library, but can be installed for Python 2 from pypi (https://github.com/ansible-collections/community.general/pull/2459).
+- scaleway_security_group_rule - the module will require ``ipaddress`` installed when used with Python 2 from community.general 4.0.0 on. ``ipaddress`` is part of the Python 3 standard library, but can be installed for Python 2 from pypi (https://github.com/ansible-collections/community.general/pull/2459).
+
+inspur.sm
+~~~~~~~~~
+
+- add_ad_group - This feature will be removed in inspur.sm.add_ad_group 2.2.0. replaced with inspur.sm.ad_group.
+- add_ldap_group - This feature will be removed in inspur.sm.add_ldap_group 2.2.0. replaced with inspur.sm.ldap_group.
+- add_user - This feature will be removed in inspur.sm.add_user 2.2.0. replaced with inspur.sm.user.
+- add_user_group - This feature will be removed in inspur.sm.add_user_group 2.2.0. replaced with inspur.sm.user_group.
+- del_ad_group - This feature will be removed in inspur.sm.del_ad_group 2.2.0. replaced with inspur.sm.ad_group.
+- del_ldap_group - This feature will be removed in inspur.sm.del_ldap_group 2.2.0. replaced with inspur.sm.ldap_group.
+- del_user - This feature will be removed in inspur.sm.del_user 2.2.0. replaced with inspur.sm.user.
+- del_user_group - This feature will be removed in inspur.sm.del_user_group 2.2.0. replaced with inspur.sm.user_group.
+- edit_ad_group - This feature will be removed in inspur.sm.edit_ad_group 2.2.0. replaced with inspur.sm.ad_group.
+- edit_ldap_group - This feature will be removed in inspur.sm.edit_ldap_group 2.2.0. replaced with inspur.sm.ldap_group.
+- edit_user - This feature will be removed in inspur.sm.edit_user 2.2.0. replaced with inspur.sm.user.
+- edit_user_group - This feature will be removed in inspur.sm.edit_user_group 2.2.0. replaced with inspur.sm.user_group.
+
+Porting Guide for v4.0.0
+========================
+
+Known Issues
+------------
+
+Ansible-core
+~~~~~~~~~~~~
+
+- ansible-test - The ``pylint`` sanity test no longer correctly detects "bad" variable names for non-constants. See https://github.com/PyCQA/pylint/issues/3701 for additional details.
 
 dellemc.openmanage
 ~~~~~~~~~~~~~~~~~~
@@ -146,8 +299,32 @@ dellemc.openmanage
 - ome_smart_fabric - Issue(185322) Only three design types are supported by OpenManage Enterprise Modular but the module successfully creates a fabric when the design type is not supported.
 - ome_smart_fabric_uplink - Issue(186024) ome_smart_fabric_uplink module does not allow the creation of multiple uplinks of the same name even though this is supported by OpenManage Enterprise Modular. If an uplink is created using the same name as an existing uplink, the existing uplink is modified.
 
+fortinet.fortios
+~~~~~~~~~~~~~~~~
+
+- Modules for monitor API are not versioned yet.
+
 Breaking Changes
 ----------------
+
+Ansible-core
+~~~~~~~~~~~~
+
+- Made SCM collections be reinstalled regardless of ``--force`` being present.
+- NetBSD virtualization facts (specifically ``ansible_virtualization_type``) now returns a more accurate value by checking the value of the ``machdep.hypervisor`` ``sysctl`` key. This change is breaking because in some cases previously, we would erroneously report ``xen`` even when the target is not running on Xen. This prevents that behavior in most cases. (https://github.com/ansible/ansible/issues/69352)
+- Replaced the in-tree dependency resolver with an external implementation that pip >= 20.3 uses now by default — ``resolvelib``. (https://github.com/ansible/ansible/issues/71784)
+- The ``meta`` module now supports tags for user-defined tasks. Internal ``meta`` tasks continue to always run. (https://github.com/ansible/ansible/issues/64558)
+- ansible-galaxy login command has been removed (see https://github.com/ansible/ansible/issues/71560)
+
+ansible.netcommon
+~~~~~~~~~~~~~~~~~
+
+- Removed vendored ipaddress package from collection. If you use ansible_collections.ansible.netcommon.plugins.module_utils.compat.ipaddress in your collection, you will need to change this to import ipaddress instead. If your content using ipaddress supports Python 2.7, you will additionally need to make sure that the user has the ipaddress package installed. Please refer to https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_best_practices.html#importing-and-using-shared-code to see how to safely import external packages that may be missing from the user's system A backport of ipaddress for Python 2.7 is available at https://pypi.org/project/ipaddress/
+
+community.docker
+~~~~~~~~~~~~~~~~
+
+- docker_swarm - if ``join_token`` is specified, a returned join token with the same value will be replaced by ``VALUE_SPECIFIED_IN_NO_LOG_PARAMETER``. Make sure that you do not blindly use the join tokens from the return value of this module when the module is invoked with ``join_token`` specified! This breaking change appears in a minor release since it is necessary to fix a security issue (https://github.com/ansible-collections/community.docker/pull/103).
 
 community.general
 ~~~~~~~~~~~~~~~~~
@@ -163,31 +340,140 @@ community.general
 - one_image - use pyone instead of python-oca (https://github.com/ansible-collections/community.general/pull/2032).
 - utm_proxy_auth_profile - the ``frontend_cookie_secret`` return value now contains a placeholder string instead of the module's ``frontend_cookie_secret`` parameter (https://github.com/ansible-collections/community.general/pull/1736).
 
+fortinet.fortios
+~~~~~~~~~~~~~~~~
+
+- Generic FortiOS Module - FOS module to issue generic request with Ansible.
+- Support for FOS Monitor API - several modules are new for monitor API.
+- Unified Collection - The fortios collection itself will be adapting any FOS platforms.
+
+servicenow.servicenow
+~~~~~~~~~~~~~~~~~~~~~
+
+- auth field now required for anything other than Basic authentication
+
+theforeman.foreman
+~~~~~~~~~~~~~~~~~~
+
+- All role variables are now prefixed with ``foreman_`` to avoid clashes with similarly named variables from roles outside this collection.
+
 Major Changes
 -------------
 
 Ansible-core
 ~~~~~~~~~~~~
 
+- A collection can be reinstalled with new version requirements without using the ``--force`` flag. The collection's dependencies will also be updated if necessary with the new requirements. Use ``--upgrade`` to force transitive dependency updates.
+- AnsibleModule - use ``ArgumentSpecValidator`` class for validating argument spec and remove private methods related to argument spec validation. Any modules using private methods should now use the ``ArgumentSpecValidator`` class or the appropriate validation function.
+- Declared ``resolvelib >= 0.5.3, < 0.6.0`` a direct dependency of
+  ansible-core. Refs:
+  - https://github.com/sarugaku/resolvelib
+  - https://pypi.org/p/resolvelib
+  - https://pradyunsg.me/blog/2020/03/27/pip-resolver-testing
+- It became possible to install Ansible Collections from local folders and namespaces folder similar to SCM structure with multiple collections.
+- It became possible to upgrade Ansible collections from Galaxy servers using the ``--upgrade`` option with ``ansible-galaxy collection install``.
+- Support for role argument specification validation at role execution time. When a role contains an argument spec, an implicit validation task is inserted at the start of role execution.
+- add ``ArgumentSpecValidator`` class for validating parameters against an argument spec outside of ``AnsibleModule`` (https://github.com/ansible/ansible/pull/73335)
 - ansible-test - Tests run with the ``centos6`` and ``default`` test containers now use a PyPI proxy container to access PyPI when Python 2.6 is used. This allows tests running under Python 2.6 to continue functioning even though PyPI is discontinuing support for non-SNI capable clients.
+
+ansible.netcommon
+~~~~~~~~~~~~~~~~~
+
+- Remove deprecated connection arguments from netconf_config
+
+arista.eos
+~~~~~~~~~~
+
+- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules` - Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
+
+cisco.asa
+~~~~~~~~~
+
+- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>` for more details.
+- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
+
+cisco.ios
+~~~~~~~~~
+
+- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
+- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
+
+cisco.iosxr
+~~~~~~~~~~~
+
+- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
+- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
+- ipaddress is no longer in ansible.netcommon. For Python versions without ipaddress (< 3.0), the ipaddress package is now required.
+
+cisco.nxos
+~~~~~~~~~~
+
+- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
+- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
+
+community.grafana
+~~~~~~~~~~~~~~~~~
+
+- introduce "skip_version_check" parameter in grafana_teams and grafana_folder modules (#147)
 
 community.mysql
 ~~~~~~~~~~~~~~~
 
 - mysql_replication - add deprecation warning that the ``Is_Slave`` and ``Is_Master`` return values will be replaced with ``Is_Primary`` and ``Is_Replica`` in ``community.mysql`` 3.0.0 (https://github.com/ansible-collections/community.mysql/pull/147).
 - mysql_replication - the choices of the ``state`` option containing ``master`` will be finally replaced with the alternative ``primary`` choices in ``community.mysql`` 3.0.0, add deprecation warnings (https://github.com/ansible-collections/community.mysql/pull/150).
+- mysql_replication - the mode options values ``getslave``, ``startslave``, ``stopslave``, ``resetslave``, ``resetslaveall` and the master_use_gtid option ``slave_pos`` are deprecated (see the alternative values) and will be removed in ``community.mysql`` 3.0.0 (https://github.com/ansible-collections/community.mysql/pull/97).
 - mysql_replication - the return value ``Is_Slave`` and ``Is_Master`` will be replaced with ``Is_Replica`` and ``Is_Primary`` in ``community.mysql`` 3.0.0 (https://github.com/ansible-collections/community.mysql/issues/145).
+- mysql_replication - the word ``SLAVE`` in messages returned by the module will be changed to ``REPLICA`` in ``community.mysql`` 2.0.0 (https://github.com/ansible-collections/community.mysql/issues/98).
 - mysql_replication - the word ``master`` in messages returned by the module will be replaced with ``primary`` in ``community.mysql`` 3.0.0 (https://github.com/ansible-collections/community.mysql/issues/145).
 - mysql_replication - the word ``slave`` in messages returned by the module replaced with ``replica`` (https://github.com/ansible-collections/community.mysql/issues/98).
 - mysql_user - the ``REQUIRESSL`` is an alias for the ``ssl`` key in the ``tls_requires`` option in ``community.mysql`` 2.0.0 and support will be dropped altogether in ``community.mysql`` 3.0.0 (https://github.com/ansible-collections/community.mysql/issues/121).
+
+fortinet.fortios
+~~~~~~~~~~~~~~~~
+
+- New module fortios_configuration_fact
+- New module fortios_json_generic
+- New module fortios_monitor
+- New module fortios_monitor_fact
+
+junipernetworks.junos
+~~~~~~~~~~~~~~~~~~~~~
+
+- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
+- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
 
 netapp.ontap
 ~~~~~~~~~~~~
 
 - na_ontap_autosupport - Added REST support to the module.
 
+servicenow.servicenow
+~~~~~~~~~~~~~~~~~~~~~
+
+- refactored client to inherit from AnsibleModule
+- supports OpenID Connect authentication protocol
+- supports bearer tokens for authentication
+
+vyos.vyos
+~~~~~~~~~
+
+- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
+- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`
+- ipaddress is no longer in ansible.netcommon. For Python versions without ipaddress (< 3.0), the ipaddress package is now required.
+
 Removed Features
 ----------------
+
+Ansible-core
+~~~~~~~~~~~~
+
+- Removed `SharedPluginLoaderObj` class from ansible.plugins.strategy. It was deprecated in favor of using the standard plugin loader.
+- Removed `_get_item()` alias from callback plugin base class which had been deprecated in favor of `_get_item_label()`.
+- The "user" parameter was previously deprecated and is now removed in favor of "scope"
+- The deprecated ``ansible.constants.BECOME_METHODS`` has been removed.
+- The deprecated ``ansible.constants.get_config()`` has been removed.
+- The deprecated ``ansible.constants.mk_boolean()`` has been removed.
+- `with_*` loops are no longer optimized for modules whose `name` parameters can take lists (mostly package managers). Use `name` instead of looping over individual names with `with_items` and friends.
 
 community.general
 ~~~~~~~~~~~~~~~~~
@@ -285,79 +571,12 @@ community.network
 - The deprecated ``community.network.ce_sflow`` parameters: ``rate_limit``, ``rate_limit_slot``, and ``forward_enp_slot`` have been removed (https://github.com/ansible-collections/community.network/pull/255).
 - The deprecated ``community.network.sros`` netconf plugin has been removed. Use ``nokia.sros.md`` instead (https://github.com/ansible-collections/community.network/pull/255).
 
-Deprecated Features
--------------------
-
-community.aws
-~~~~~~~~~~~~~
-
-- ec2_vpc_endpoint_info - the ``query`` option has been deprecated and will be removed after 2022-12-01 (https://github.com/ansible-collections/community.aws/pull/346). The ec2_vpc_endpoint_info now defaults to listing information about endpoints. The ability to search for information about available services has been moved to the dedicated module ``ec2_vpc_endpoint_service_info``.
-
-community.general
-~~~~~~~~~~~~~~~~~
-
-- apt_rpm - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- composer - deprecated invalid parameter aliases ``working-dir``, ``global-command``, ``prefer-source``, ``prefer-dist``, ``no-dev``, ``no-scripts``, ``no-plugins``, ``optimize-autoloader``, ``classmap-authoritative``, ``apcu-autoloader``, ``ignore-platform-reqs``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- cpanm - parameter ``system_lib`` deprecated in favor of using ``become`` (https://github.com/ansible-collections/community.general/pull/2218).
-- github_deploy_key - deprecated invalid parameter alias ``2fa_token``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- grove - the option ``message`` will be removed in community.general 4.0.0. Use the new option ``message_content`` instead (https://github.com/ansible-collections/community.general/pull/1929).
-- homebrew - deprecated invalid parameter alias ``update-brew``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- homebrew_cask - deprecated invalid parameter alias ``update-brew``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- opkg - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- pacman - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- puppet - deprecated undocumented parameter ``show_diff``, will be removed in 7.0.0. (https://github.com/ansible-collections/community.general/pull/1927).
-- runit - unused parameter ``dist`` marked for deprecation (https://github.com/ansible-collections/community.general/pull/1830).
-- slackpkg - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- urmpi - deprecated invalid parameter aliases ``update-cache`` and ``no-recommends``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- xbps - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
-- xfconf - returning output as facts is deprecated, this will be removed in community.general 4.0.0. Please register the task output in a variable and use it instead. You can already switch to the new behavior now by using the new ``disable_facts`` option (https://github.com/ansible-collections/community.general/pull/1747).
-
-Porting Guide for v4.0.0a4
-==========================
-
-Known Issues
-------------
-
-fortinet.fortios
-~~~~~~~~~~~~~~~~
-
-- Modules for monitor API are not versioned yet.
-
-Breaking Changes
-----------------
-
-fortinet.fortios
-~~~~~~~~~~~~~~~~
-
-- Generic FortiOS Module - FOS module to issue generic request with Ansible.
-- Support for FOS Monitor API - several modules are new for monitor API.
-- Unified Collection - The fortios collection itself will be adapting any FOS platforms.
-
-servicenow.servicenow
+f5networks.f5_modules
 ~~~~~~~~~~~~~~~~~~~~~
 
-- auth field now required for anything other than Basic authentication
-
-Major Changes
--------------
-
-fortinet.fortios
-~~~~~~~~~~~~~~~~
-
-- New module fortios_configuration_fact
-- New module fortios_json_generic
-- New module fortios_monitor
-- New module fortios_monitor_fact
-
-servicenow.servicenow
-~~~~~~~~~~~~~~~~~~~~~
-
-- refactored client to inherit from AnsibleModule
-- supports OpenID Connect authentication protocol
-- supports bearer tokens for authentication
-
-Removed Features
-----------------
+- Removed TMOS v11 support for bigip_gtm_pool and bigip_gtm_wide_ip modules
+- Removed quorum and monitor_type parameters in bigip_node module. See porting guides section at https://clouddocs.f5.com/products/orchestration/ansible/devel/usage/porting-guides.html
+- Removed syslog_settings and pool_settings parameters in bigip_log_destination moduke. See porting guides section at https://clouddocs.f5.com/products/orchestration/ansible/devel/usage/porting-guides.html
 
 fortinet.fortios
 ~~~~~~~~~~~~~~~~
@@ -367,193 +586,6 @@ fortinet.fortios
 - Removed module fortios_registration_vdom
 - Removed module fortios_system_config_backup_restore
 - Removed module fortios_system_vmlicense
-
-Deprecated Features
--------------------
-
-community.vmware
-~~~~~~~~~~~~~~~~
-
-- vmware_vmkernel_ip_config - deprecate in favor of vmware_vmkernel (https://github.com/ansible-collections/community.vmware/pull/667).
-
-f5networks.f5_modules
-~~~~~~~~~~~~~~~~~~~~~
-
-- Support for Python versions earlier than 3.5 is being deprecated
-
-Porting Guide for v4.0.0a3
-==========================
-
-Known Issues
-------------
-
-dellemc.openmanage
-~~~~~~~~~~~~~~~~~~
-
-- idrac_user - Issue(192043) Module may error out with the message ``unable to perform the import or export operation because there are pending attribute changes or a configuration job is in progress``. Wait for the job to complete and run the task again.
-- ome_configuration_compliance_info - Issue(195592) Module may error out with the message ``unable to process the request because an error occurred``. If the issue persists, report it to the system administrator.
-- ome_smart_fabric - Issue(185322) Only three design types are supported by OpenManage Enterprise Modular but the module successfully creates a fabric when the design type is not supported.
-- ome_smart_fabric_uplink - Issue(186024) ome_smart_fabric_uplink module does not allow the creation of multiple uplinks of the same name even though this is supported by OpenManage Enterprise Modular. If an uplink is created using the same name as an existing uplink, the existing uplink is modified.
-
-Porting Guide for v4.0.0a2
-==========================
-
-Major Changes
--------------
-
-Ansible-core
-~~~~~~~~~~~~
-
-- AnsibleModule - use ``ArgumentSpecValidator`` class for validating argument spec and remove private methods related to argument spec validation. Any modules using private methods should now use the ``ArgumentSpecValidator`` class or the appropriate validation function.
-
-Deprecated Features
--------------------
-
-community.crypto
-~~~~~~~~~~~~~~~~
-
-- acme module_utils - the ``acme`` module_utils (``ansible_collections.community.crypto.plugins.module_utils.acme``) is deprecated and will be removed in community.crypto 2.0.0. Use the new Python modules in the ``acme`` package instead (``ansible_collections.community.crypto.plugins.module_utils.acme.xxx``) (https://github.com/ansible-collections/community.crypto/pull/184).
-
-Porting Guide for v4.0.0a1
-==========================
-
-Known Issues
-------------
-
-Ansible-core
-~~~~~~~~~~~~
-
-- ansible-test - The ``pylint`` sanity test no longer correctly detects "bad" variable names for non-constants. See https://github.com/PyCQA/pylint/issues/3701 for additional details.
-
-dellemc.openmanage
-~~~~~~~~~~~~~~~~~~
-
-- ome_smart_fabric - Issue(185322) Only three design types are supported by OpenManage Enterprise Modular but the module successfully creates a fabric when the design type is not supported.
-- ome_smart_fabric_uplink - Issue(186024) ome_smart_fabric_uplink module does not allow the creation of multiple uplinks of the same name even though this is supported by OpenManage Enterprise Modular. If an uplink is created using the same name as an existing uplink, the existing uplink is modified.
-
-Breaking Changes
-----------------
-
-Ansible-core
-~~~~~~~~~~~~
-
-- Made SCM collections be reinstalled regardless of ``--force`` being present.
-- NetBSD virtualization facts (specifically ``ansible_virtualization_type``) now returns a more accurate value by checking the value of the ``machdep.hypervisor`` ``sysctl`` key. This change is breaking because in some cases previously, we would erroneously report ``xen`` even when the target is not running on Xen. This prevents that behavior in most cases. (https://github.com/ansible/ansible/issues/69352)
-- Replaced the in-tree dependency resolver with an external implementation that pip >= 20.3 uses now by default — ``resolvelib``. (https://github.com/ansible/ansible/issues/71784)
-- The ``meta`` module now supports tags for user-defined tasks. Internal ``meta`` tasks continue to always run. (https://github.com/ansible/ansible/issues/64558)
-- ansible-galaxy login command has been removed (see https://github.com/ansible/ansible/issues/71560)
-
-ansible.netcommon
-~~~~~~~~~~~~~~~~~
-
-- Removed vendored ipaddress package from collection. If you use ansible_collections.ansible.netcommon.plugins.module_utils.compat.ipaddress in your collection, you will need to change this to import ipaddress instead. If your content using ipaddress supports Python 2.7, you will additionally need to make sure that the user has the ipaddress package installed. Please refer to https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_best_practices.html#importing-and-using-shared-code to see how to safely import external packages that may be missing from the user's system A backport of ipaddress for Python 2.7 is available at https://pypi.org/project/ipaddress/
-
-community.docker
-~~~~~~~~~~~~~~~~
-
-- docker_swarm - if ``join_token`` is specified, a returned join token with the same value will be replaced by ``VALUE_SPECIFIED_IN_NO_LOG_PARAMETER``. Make sure that you do not blindly use the join tokens from the return value of this module when the module is invoked with ``join_token`` specified! This breaking change appears in a minor release since it is necessary to fix a security issue (https://github.com/ansible-collections/community.docker/pull/103).
-
-theforeman.foreman
-~~~~~~~~~~~~~~~~~~
-
-- All role variables are now prefixed with ``foreman_`` to avoid clashes with similarly named variables from roles outside this collection.
-
-Major Changes
--------------
-
-Ansible-core
-~~~~~~~~~~~~
-
-- A collection can be reinstalled with new version requirements without using the ``--force`` flag. The collection's dependencies will also be updated if necessary with the new requirements. Use ``--upgrade`` to force transitive dependency updates.
-- Declared ``resolvelib >= 0.5.3, < 0.6.0`` a direct dependency of
-  ansible-core. Refs:
-  - https://github.com/sarugaku/resolvelib
-  - https://pypi.org/p/resolvelib
-  - https://pradyunsg.me/blog/2020/03/27/pip-resolver-testing
-- It became possible to install Ansible Collections from local folders and namespaces folder similar to SCM structure with multiple collections.
-- It became possible to upgrade Ansible collections from Galaxy servers using the ``--upgrade`` option with ``ansible-galaxy collection install``.
-- Support for role argument specification validation at role execution time. When a role contains an argument spec, an implicit validation task is inserted at the start of role execution.
-- add ``ArgumentSpecValidator`` class for validating parameters against an argument spec outside of ``AnsibleModule`` (https://github.com/ansible/ansible/pull/73335)
-
-ansible.netcommon
-~~~~~~~~~~~~~~~~~
-
-- Remove deprecated connection arguments from netconf_config
-
-arista.eos
-~~~~~~~~~~
-
-- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules` - Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
-
-cisco.asa
-~~~~~~~~~
-
-- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>` for more details.
-- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
-
-cisco.ios
-~~~~~~~~~
-
-- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
-- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
-
-cisco.iosxr
-~~~~~~~~~~~
-
-- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
-- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
-- ipaddress is no longer in ansible.netcommon. For Python versions without ipaddress (< 3.0), the ipaddress package is now required.
-
-cisco.nxos
-~~~~~~~~~~
-
-- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
-- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
-
-community.grafana
-~~~~~~~~~~~~~~~~~
-
-- introduce "skip_version_check" parameter in grafana_teams and grafana_folder modules (#147)
-
-community.mysql
-~~~~~~~~~~~~~~~
-
-- mysql_replication - the mode options values ``getslave``, ``startslave``, ``stopslave``, ``resetslave``, ``resetslaveall` and the master_use_gtid option ``slave_pos`` are deprecated (see the alternative values) and will be removed in ``community.mysql`` 3.0.0 (https://github.com/ansible-collections/community.mysql/pull/97).
-- mysql_replication - the word ``SLAVE`` in messages returned by the module will be changed to ``REPLICA`` in ``community.mysql`` 2.0.0 (https://github.com/ansible-collections/community.mysql/issues/98).
-
-junipernetworks.junos
-~~~~~~~~~~~~~~~~~~~~~
-
-- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
-- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`.
-
-vyos.vyos
-~~~~~~~~~
-
-- Please refer to ansible.netcommon `changelog <https://github.com/ansible-collections/ansible.netcommon/blob/main/changelogs/CHANGELOG.rst#ansible-netcommon-collection-release-notes>`_ for more details.
-- Requires ansible.netcommon v2.0.0+ to support `ansible_network_single_user_mode` and `ansible_network_import_modules`
-- ipaddress is no longer in ansible.netcommon. For Python versions without ipaddress (< 3.0), the ipaddress package is now required.
-
-Removed Features
-----------------
-
-Ansible-core
-~~~~~~~~~~~~
-
-- Removed `SharedPluginLoaderObj` class from ansible.plugins.strategy. It was deprecated in favor of using the standard plugin loader.
-- Removed `_get_item()` alias from callback plugin base class which had been deprecated in favor of `_get_item_label()`.
-- The "user" parameter was previously deprecated and is now removed in favor of "scope"
-- The deprecated ``ansible.constants.BECOME_METHODS`` has been removed.
-- The deprecated ``ansible.constants.get_config()`` has been removed.
-- The deprecated ``ansible.constants.mk_boolean()`` has been removed.
-- `with_*` loops are no longer optimized for modules whose `name` parameters can take lists (mostly package managers). Use `name` instead of looping over individual names with `with_items` and friends.
-
-f5networks.f5_modules
-~~~~~~~~~~~~~~~~~~~~~
-
-- Removed TMOS v11 support for bigip_gtm_pool and bigip_gtm_wide_ip modules
-- Removed quorum and monitor_type parameters in bigip_node module. See porting guides section at https://clouddocs.f5.com/products/orchestration/ansible/devel/usage/porting-guides.html
-- Removed syslog_settings and pool_settings parameters in bigip_log_destination moduke. See porting guides section at https://clouddocs.f5.com/products/orchestration/ansible/devel/usage/porting-guides.html
 
 Deprecated Features
 -------------------
@@ -586,10 +618,12 @@ community.aws
 
 - ec2_eip - formally deprecate the ``instance_id`` alias for ``device_id`` (https://github.com/ansible-collections/community.aws/pull/349).
 - ec2_vpc_endpoint - deprecate the policy_file option and recommend using policy with a lookup (https://github.com/ansible-collections/community.aws/pull/366).
+- ec2_vpc_endpoint_info - the ``query`` option has been deprecated and will be removed after 2022-12-01 (https://github.com/ansible-collections/community.aws/pull/346). The ec2_vpc_endpoint_info now defaults to listing information about endpoints. The ability to search for information about available services has been moved to the dedicated module ``ec2_vpc_endpoint_service_info``.
 
 community.crypto
 ~~~~~~~~~~~~~~~~
 
+- acme module_utils - the ``acme`` module_utils (``ansible_collections.community.crypto.plugins.module_utils.acme``) is deprecated and will be removed in community.crypto 2.0.0. Use the new Python modules in the ``acme`` package instead (``ansible_collections.community.crypto.plugins.module_utils.acme.xxx``) (https://github.com/ansible-collections/community.crypto/pull/184).
 - acme_account_info - when ``retrieve_orders=url_list``, ``orders`` will no longer be returned in community.crypto 2.0.0. Use ``order_uris`` instead (https://github.com/ansible-collections/community.crypto/pull/178).
 
 community.general
@@ -597,6 +631,7 @@ community.general
 
 - apt_rpm - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
 - composer - deprecated invalid parameter aliases ``working-dir``, ``global-command``, ``prefer-source``, ``prefer-dist``, ``no-dev``, ``no-scripts``, ``no-plugins``, ``optimize-autoloader``, ``classmap-authoritative``, ``apcu-autoloader``, ``ignore-platform-reqs``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
+- cpanm - parameter ``system_lib`` deprecated in favor of using ``become`` (https://github.com/ansible-collections/community.general/pull/2218).
 - github_deploy_key - deprecated invalid parameter alias ``2fa_token``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
 - grove - the option ``message`` will be removed in community.general 4.0.0. Use the new option ``message_content`` instead (https://github.com/ansible-collections/community.general/pull/1929).
 - homebrew - deprecated invalid parameter alias ``update-brew``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
@@ -608,3 +643,14 @@ community.general
 - slackpkg - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
 - urmpi - deprecated invalid parameter aliases ``update-cache`` and ``no-recommends``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
 - xbps - deprecated invalid parameter alias ``update-cache``, will be removed in 5.0.0 (https://github.com/ansible-collections/community.general/pull/1927).
+- xfconf - returning output as facts is deprecated, this will be removed in community.general 4.0.0. Please register the task output in a variable and use it instead. You can already switch to the new behavior now by using the new ``disable_facts`` option (https://github.com/ansible-collections/community.general/pull/1747).
+
+community.vmware
+~~~~~~~~~~~~~~~~
+
+- vmware_vmkernel_ip_config - deprecate in favor of vmware_vmkernel (https://github.com/ansible-collections/community.vmware/pull/667).
+
+f5networks.f5_modules
+~~~~~~~~~~~~~~~~~~~~~
+
+- Support for Python versions earlier than 3.5 is being deprecated

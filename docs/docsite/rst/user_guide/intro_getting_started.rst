@@ -81,6 +81,8 @@ You should see output for each host in your inventory, similar to this:
        "ping": "pong"
    }
 
+You can use ``-u`` as one way to specify the user to connect as, by default Ansible uses SSH, which defaults to the 'current user'.
+
 Now run a live command on all of your nodes:
 
 .. code-block:: bash
@@ -106,7 +108,7 @@ In a directory of your choice you can create your first playbook in a file calle
 .. code-block:: yaml
 
     ---
-    - name: My task
+    - name: My playbook
       hosts: all
       tasks:
          - name: Leaving a mark
@@ -123,7 +125,7 @@ and may see output like this:
 .. code-block:: ansible-output
 
 
-   PLAY [My task] **************************************************************************************************************************
+   PLAY [My playbook] **********************************************************************************************************************
    
    TASK [Gathering Facts] ******************************************************************************************************************
    ok: [aserver.example.org]
@@ -192,5 +194,5 @@ also has powerful configuration management and deployment features.
        Labs to provide further knowledge on different topics
    `Mailing List <https://groups.google.com/group/ansible-project>`_
        Questions? Help? Ideas?  Stop by the list on Google Groups
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

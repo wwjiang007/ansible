@@ -4,7 +4,7 @@
 Understanding privilege escalation: become
 ******************************************
 
-Ansible uses existing privilege escalation systems to execute tasks with root privileges or with another user's permissions. Because this feature allows you to 'become' another user, different from the user that logged into the machine (remote user), we call it ``become``. The ``become`` keyword leverages existing privilege escalation tools like `sudo`, `su`, `pfexec`, `doas`, `pbrun`, `dzdo`, `ksu`, `runas`, `machinectl` and others.
+Ansible uses existing privilege escalation systems to execute tasks with root privileges or with another user's permissions. Because this feature allows you to 'become' another user, different from the user that logged into the machine (remote user), we call it ``become``. The ``become`` keyword uses existing privilege escalation tools like `sudo`, `su`, `pfexec`, `doas`, `pbrun`, `dzdo`, `ksu`, `runas`, `machinectl` and others.
 
 .. contents::
    :local:
@@ -753,5 +753,5 @@ Limitations of become on Windows
 
    `Mailing List <https://groups.google.com/forum/#!forum/ansible-project>`_
        Questions? Help? Ideas?  Stop by the list on Google Groups
-   `webchat.freenode.net <https://webchat.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

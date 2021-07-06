@@ -9,7 +9,7 @@ What is Desired State Configuration?
 Desired State Configuration, or DSC, is a tool built into PowerShell that can
 be used to define a Windows host setup through code. The overall purpose of DSC
 is the same as Ansible, it is just executed in a different manner. Since
-Ansible 2.4, the ``win_dsc`` module has been added and can be used to leverage
+Ansible 2.4, the ``win_dsc`` module has been added and can be used to take advantage of
 existing DSC resources when interacting with a Windows host.
 
 More details on DSC can be viewed at `DSC Overview <https://docs.microsoft.com/en-us/powershell/scripting/dsc/overview/overview>`_.
@@ -501,5 +501,5 @@ Setup IIS Website
        Windows specific module list, all implemented in PowerShell
    `User Mailing List <https://groups.google.com/group/ansible-project>`_
        Have a question?  Stop by the google group!
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

@@ -10,7 +10,7 @@ You should first check the collection repository to see if it has specific contr
 Contributing to a collection: community.general
 ===============================================
 
-These instructions apply to collections hosted in the `ansible_collections GitHub org <https://github.com/ansible-collections>`_. For other collections, especially for collections not hosted on GitHub, check the ``README.md`` of the collection for information on contributing to it.
+These instructions apply to collections hosted in the `ansible_collections GitHub organization <https://github.com/ansible-collections>`_. For other collections, especially for collections not hosted on GitHub, check the ``README.md`` of the collection for information on contributing to it.
 
 This example uses the `community.general collection <https://github.com/ansible-collections/community.general/>`_. To contribute to other collections in the same GitHub org, replace the folder names ``community`` and ``general`` with the namespace and collection name of a different collection.
 
@@ -55,5 +55,5 @@ You can test your changes by using this checkout of ``community.general`` in pla
        Guidelines for contributing to selected collections
    `Mailing List <https://groups.google.com/group/ansible-devel>`_
        The development mailing list
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

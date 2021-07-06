@@ -82,7 +82,7 @@ In the above example, if we had 6 hosts in the group 'webservers', Ansible would
     TASK [second task] ***************************************
     changed: [web4]
     changed: [web5]
-    changed: [web2]
+    changed: [web6]
 
     PLAY RECAP ***********************************************
     web1      : ok=2    changed=2    unreachable=0    failed=0
@@ -218,5 +218,5 @@ As always with :ref:`delegation <playbooks_delegation>`, the action will be exec
        Playbook organization by roles
    `User Mailing List <https://groups.google.com/group/ansible-devel>`_
        Have a question?  Stop by the google group!
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

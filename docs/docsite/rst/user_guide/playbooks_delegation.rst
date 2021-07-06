@@ -77,7 +77,9 @@ To specify more arguments, use the following syntax::
             body: "{{ mail_body }}"
           run_once: True
 
-The `ansible_host` variable reflects the host a task is delegated to.
+.. warning::
+
+ Although you can ``delegate_to`` a host that does not exist in inventory (by adding IP address, DNS name or whatever requirement the connection plugin has), doing so does not add the host to your inventory and might cause issues. Hosts delegated to in this way do not inherit variables from the "all" group', so variables like connection user and key are missing. If you must ``delegate_to`` a non-inventory host, use the :ref:`add host module <add_host_module>`.
 
 .. _delegate_facts:
 
@@ -132,5 +134,5 @@ use the default remote connection type::
        Many examples of full-stack deployments
    `User Mailing List <https://groups.google.com/group/ansible-devel>`_
        Have a question?  Stop by the google group!
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel

@@ -366,7 +366,10 @@ class TestServiceMgrFacts(BaseFactsTest):
     # TODO: dedupe some of this test code
 
     @patch('ansible.module_utils.facts.system.service_mgr.get_file_content', return_value=None)
-    def test_no_proc1(self, mock_gfc):
+    @patch('ansible.module_utils.facts.system.service_mgr.ServiceMgrFactCollector.is_systemd_managed', return_value=False)
+    @patch('ansible.module_utils.facts.system.service_mgr.ServiceMgrFactCollector.is_systemd_managed_offline', return_value=False)
+    @patch('ansible.module_utils.facts.system.service_mgr.os.path.exists', return_value=False)
+    def test_service_mgr_runit(self, mock_gfc, mock_ism, mock_ismo, mock_ope):
         # no /proc/1/comm, ps returns non-0
         # should fallback to 'service'
         module = self._mock_module()
@@ -388,7 +391,10 @@ class TestServiceMgrFacts(BaseFactsTest):
         self.assertEqual(facts_dict['service_mgr'], 'sys11')
 
     @patch('ansible.module_utils.facts.system.service_mgr.get_file_content', return_value=None)
-    def test_clowncar(self, mock_gfc):
+    @patch('ansible.module_utils.facts.system.service_mgr.ServiceMgrFactCollector.is_systemd_managed', return_value=False)
+    @patch('ansible.module_utils.facts.system.service_mgr.ServiceMgrFactCollector.is_systemd_managed_offline', return_value=False)
+    @patch('ansible.module_utils.facts.system.service_mgr.os.path.exists', return_value=False)
+    def test_service_mgr_runit(self, mock_gfc, mock_ism, mock_ismo, mock_ope):
         # no /proc/1/comm, ps fails, distro and system are clowncar
         # should end up return 'sys11'
         module = self._mock_module()
@@ -400,6 +406,36 @@ class TestServiceMgrFacts(BaseFactsTest):
                                             collected_facts=collected_facts)
         self.assertIsInstance(facts_dict, dict)
         self.assertEqual(facts_dict['service_mgr'], 'service')
+
+    @patch('ansible.module_utils.facts.system.service_mgr.get_file_content', return_value='runit-init')
+    @patch('ansible.module_utils.facts.system.service_mgr.os.path.islink', side_effect=lambda x: x == '/sbin/init')
+    @patch('ansible.module_utils.facts.system.service_mgr.os.readlink', side_effect=lambda x: '/sbin/runit-init' if x == '/sbin/init' else '/bin/false')
+    def test_service_mgr_runit(self, mock_gfc, mock_opl, mock_orl):
+        # /proc/1/comm contains 'runit-init', ps fails, service manager is runit
+        # should end up return 'runit'
+        module = self._mock_module()
+        module.run_command = Mock(return_value=(1, '', ''))
+        collected_facts = {'ansible_system': 'Linux'}
+        fact_collector = self.collector_class()
+        facts_dict = fact_collector.collect(module=module,
+                                            collected_facts=collected_facts)
+        self.assertIsInstance(facts_dict, dict)
+        self.assertEqual(facts_dict['service_mgr'], 'runit')
+
+    @patch('ansible.module_utils.facts.system.service_mgr.get_file_content', return_value=None)
+    @patch('ansible.module_utils.facts.system.service_mgr.os.path.islink', side_effect=lambda x: x == '/sbin/init')
+    @patch('ansible.module_utils.facts.system.service_mgr.os.readlink', side_effect=lambda x: '/sbin/runit-init' if x == '/sbin/init' else '/bin/false')
+    def test_service_mgr_runit_no_comm(self, mock_gfc, mock_opl, mock_orl):
+        # no /proc/1/comm, ps returns 'COMMAND\n', service manager is runit
+        # should end up return 'runit'
+        module = self._mock_module()
+        module.run_command = Mock(return_value=(1, 'COMMAND\n', ''))
+        collected_facts = {'ansible_system': 'Linux'}
+        fact_collector = self.collector_class()
+        facts_dict = fact_collector.collect(module=module,
+                                            collected_facts=collected_facts)
+        self.assertIsInstance(facts_dict, dict)
+        self.assertEqual(facts_dict['service_mgr'], 'runit')
 
     # TODO: reenable these tests when we can mock more easily
 

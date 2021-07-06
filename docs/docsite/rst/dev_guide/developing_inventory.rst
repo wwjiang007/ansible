@@ -10,7 +10,7 @@ In previous versions, you had to create a script or program that could output JS
 You can still use and write inventory scripts, as we ensured backwards compatibility via the :ref:`script inventory plugin <script_inventory>`
 and there is no restriction on the programming language used.
 If you choose to write a script, however, you will need to implement some features yourself such as caching, configuration management, dynamic variable and group composition, and so on.
-If you use :ref:`inventory plugins <inventory_plugins>` instead, you can leverage the Ansible codebase and add these common features automatically.
+If you use :ref:`inventory plugins <inventory_plugins>` instead, you can use the Ansible codebase and add these common features automatically.
 
 .. contents:: Topics
    :local:
@@ -143,9 +143,9 @@ The base class does some minimal assignment for reuse in other methods.
 
        def parse(self, inventory, loader, path, cache=True):
 
-        self.loader = loader
-        self.inventory = inventory
-        self.templar = Templar(loader=loader)
+            self.loader = loader
+            self.inventory = inventory
+            self.templar = Templar(loader=loader)
 
 It is up to the plugin now to parse the provided inventory source and translate it into Ansible inventory.
 To facilitate this, the example below uses a few helper functions:
@@ -349,7 +349,7 @@ From Ansible 2.5 onwards, we include the :ref:`auto inventory plugin <auto_inven
 Inventory scripts
 =================
 
-Even though we now have inventory plugins, we still support inventory scripts, not only for backwards compatibility but also to allow users to leverage other programming languages.
+Even though we now have inventory plugins, we still support inventory scripts, not only for backwards compatibility but also to allow users to use other programming languages.
 
 
 .. _inventory_script_conventions:
@@ -473,5 +473,5 @@ An easy way to see how this should look is using :ref:`ansible-inventory`, which
        REST API endpoint and GUI for Ansible, syncs with dynamic inventory
    `Development Mailing List <https://groups.google.com/group/ansible-devel>`_
        Mailing list for development topics
-   `irc.freenode.net <http://irc.freenode.net>`_
+   `irc.libera.chat <https://libera.chat/>`_
        #ansible IRC chat channel
